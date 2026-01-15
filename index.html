@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Atltvhead Portfolio - Interactive 3D Portfolio Website">
+    <title>Atltvhead Portfolio</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loader">
+            <div class="spinner"></div>
+            <p>Loading Portfolio...</p>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <span id="progress-text">0%</span>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav id="main-nav">
+        <div class="logo">ATLTVHEAD</div>
+        <ul class="nav-links">
+            <li><a href="#home" class="nav-link active">Home</a></li>
+            <li><a href="#about" class="nav-link">About</a></li>
+            <li><a href="#projects" class="nav-link">Projects</a></li>
+            <li><a href="#contact" class="nav-link">Contact</a></li>
+        </ul>
+        <div class="burger">
+            <div class="line1"></div>
+            <div class="line2"></div>
+            <div class="line3"></div>
+        </div>
+    </nav>
+
+    <!-- Three.js Canvas Container -->
+    <div id="canvas-container">
+        <canvas id="three-canvas"></canvas>
+    </div>
+
+    <!-- Content Sections -->
+    <main id="main-content">
+        <!-- Home Section -->
+        <section id="home" class="section active">
+            <div class="content-wrapper">
+                <h1 class="glitch" data-text="Welcome">Welcome</h1>
+                <p class="subtitle">Interactive 3D Portfolio</p>
+                <p class="description">Explore my work through an immersive 3D experience</p>
+                <button class="cta-button" id="explore-btn">Explore</button>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section id="about" class="section">
+            <div class="content-wrapper">
+                <h2>About Me</h2>
+                <div class="about-content">
+                    <div class="about-text">
+                        <p>Hi! I'm a developer passionate about creating immersive web experiences.</p>
+                        <p>I specialize in 3D graphics, web development, and interactive design.</p>
+                        <div class="skills">
+                            <h3>Skills</h3>
+                            <ul>
+                                <li>Three.js & WebGL</li>
+                                <li>JavaScript/TypeScript</li>
+                                <li>HTML/CSS</li>
+                                <li>3D Modeling</li>
+                                <li>Creative Coding</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="about-image">
+                        <!-- 3D model placeholder will be rendered here -->
+                        <div class="model-placeholder"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Projects Section -->
+        <section id="projects" class="section">
+            <div class="content-wrapper">
+                <h2>Projects</h2>
+                <div class="projects-grid">
+                    <div class="project-card">
+                        <div class="project-image">
+                            <div class="model-preview" data-model="project1"></div>
+                        </div>
+                        <h3>Project One</h3>
+                        <p>Description of your first project with 3D elements</p>
+                        <a href="#" class="project-link">View Project →</a>
+                    </div>
+                    <div class="project-card">
+                        <div class="project-image">
+                            <div class="model-preview" data-model="project2"></div>
+                        </div>
+                        <h3>Project Two</h3>
+                        <p>Description of your second project with interactive 3D</p>
+                        <a href="#" class="project-link">View Project →</a>
+                    </div>
+                    <div class="project-card">
+                        <div class="project-image">
+                            <div class="model-preview" data-model="project3"></div>
+                        </div>
+                        <h3>Project Three</h3>
+                        <p>Description of your third project showcasing WebGL</p>
+                        <a href="#" class="project-link">View Project →</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact Section -->
+        <section id="contact" class="section">
+            <div class="content-wrapper">
+                <h2>Get In Touch</h2>
+                <div class="contact-content">
+                    <form class="contact-form">
+                        <div class="form-group">
+                            <input type="text" id="name" name="name" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="email" name="email" placeholder="Your Email" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="message" name="message" placeholder="Your Message" rows="5" required></textarea>
+                        </div>
+                        <button type="submit" class="submit-btn">Send Message</button>
+                    </form>
+                    <div class="contact-info">
+                        <h3>Connect</h3>
+                        <ul class="social-links">
+                            <li><a href="#" target="_blank">GitHub</a></li>
+                            <li><a href="#" target="_blank">LinkedIn</a></li>
+                            <li><a href="#" target="_blank">Twitter</a></li>
+                            <li><a href="#" target="_blank">Email</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2026 Atltvhead. Built with Three.js</p>
+    </footer>
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- GLTFLoader for 3D models -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    
+    <!-- OrbitControls for camera interaction -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Custom Scripts -->
+    <script src="js/scene.js"></script>
+    <script src="js/modelLoader.js"></script>
+    <script src="js/animations.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
