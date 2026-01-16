@@ -8,13 +8,14 @@ Since this is already a GitHub Pages repository (`atltvhead.github.io`), deploym
 ✅ Repository is already configured for GitHub Pages
 ✅ Custom domain (atltvhead.xyz) is configured via CNAME
 ✅ All files are committed and pushed
+✅ **GitHub Actions workflow configured** (`.github/workflows/deploy.yml`)
 
 ### Automatic Deployment
-Every time you push to the main branch (or merge a PR), GitHub Pages automatically:
-1. Detects the changes
-2. Builds the site
-3. Deploys to your domain
-4. Updates within 1-2 minutes
+Every time you push to the main branch (or merge a PR), the GitHub Actions workflow automatically:
+1. Checks out your code
+2. Uploads the site as a Pages artifact
+3. Deploys to GitHub Pages
+4. Updates your site within 1-2 minutes
 
 ### How to Deploy Your Changes
 
@@ -201,22 +202,52 @@ du -sh styles/*
 du -sh js/*
 ```
 
-## Continuous Integration (Optional)
+## Automated Deployment with GitHub Actions
 
-You can add GitHub Actions for automated testing:
+This repository includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically deploys the site to GitHub Pages.
+
+### How It Works
+
+The workflow:
+1. **Triggers automatically** when you push to the `main` branch
+2. **Can be triggered manually** from the Actions tab in GitHub
+3. **Checks out the code** from the repository
+4. **Uploads the entire site** as a GitHub Pages artifact
+5. **Deploys to GitHub Pages** with proper permissions
+
+### Workflow Configuration
 
 ```yaml
-# .github/workflows/test.yml
-name: Test
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Validate HTML
-        run: echo "Add HTML validation"
+# .github/workflows/deploy.yml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allows manual triggering
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 ```
+
+### Viewing Deployment Status
+
+1. Go to the **Actions** tab in your GitHub repository
+2. Click on the latest workflow run
+3. View the deployment URL in the workflow output
+4. Check for any errors in the workflow logs
+
+### Manual Deployment
+
+To manually trigger a deployment:
+1. Go to **Actions** tab in GitHub
+2. Click on **Deploy to GitHub Pages** workflow
+3. Click **Run workflow** button
+4. Select the `main` branch
+5. Click **Run workflow**
 
 ## Troubleshooting Deployment
 
