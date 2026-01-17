@@ -134,7 +134,7 @@ class ModelViewer {
                             roughness: 0.2,            // Low roughness for brilliant reflections
                             clearcoat: 1.0,            // Strong clearcoat for gem-like finish with brilliance
                             clearcoatRoughness: 0.15,  // Smooth clearcoat for shine
-                            reflectivity: 1.0,         // Maximum reflectivity
+                            ior: 2.4,                  // High index of refraction like a diamond for brilliance
                             emissive: 0x8844ff,        // Vibrant purple glow for iridescent effect
                             emissiveIntensity: 0.25    // Noticeable emission for gemstone glow
                         });
@@ -183,7 +183,7 @@ class ModelViewer {
             roughness: 0.2,            // Low roughness for brilliant reflections
             clearcoat: 1.0,            // Strong clearcoat for gem-like finish with brilliance
             clearcoatRoughness: 0.15,  // Smooth clearcoat for shine
-            reflectivity: 1.0,         // Maximum reflectivity
+            ior: 2.4,                  // High index of refraction like a diamond for brilliance
             emissive: 0x8844ff,        // Vibrant purple glow for iridescent effect
             emissiveIntensity: 0.25    // Noticeable emission for gemstone glow
         });
