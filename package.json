@@ -18,11 +18,11 @@
   ],
   "author": "Atltvhead",
   "license": "MIT",
-  "dependencies": {
-    "three": "^0.128.0"
-  },
   "repository": {
     "type": "git",
     "url": "https://github.com/ATLTVHEAD/atltvhead.github.io.git"
+  },
+  "dependencies": {
+    "three": "^0.137.0"
   }
 }
