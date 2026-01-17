@@ -1,31 +1,33 @@
-# Three.js Portfolio Website
+# Three.js 3D Model Viewer Portfolio
 
-An interactive 3D portfolio website built with Three.js, featuring immersive 3D graphics and smooth animations.
+An interactive 3D portfolio website built with Three.js, featuring a dedicated 3D model viewer and portfolio page.
 
 ## 🌟 Features
 
-- **Interactive 3D Background**: Dynamic particle system with mouse-following parallax effects
-- **3D Model Support**: Built-in GLTF/GLB model loader for showcasing 3D work
+- **Interactive 3D Model Viewer**: Load and explore OBJ 3D models with orbit controls
+- **Dual-Page Design**: Separate 3D viewer and portfolio pages
+- **Orbit Controls**: Rotate, pan, and zoom the 3D model with mouse/touch
+- **OBJ Model Support**: Ready to load custom `.obj` files
 - **Responsive Design**: Fully responsive layout that works on all devices
-- **Smooth Animations**: Scroll-triggered animations and section transitions
-- **Modern UI**: Clean, professional design with glassmorphism effects
-- **Easy Customization**: Well-structured code with clear separation of concerns
+- **Modern Dark Theme**: Sleek dark design with cyan and pink accents
+- **No Build Required**: Static site ready for GitHub Pages deployment
+- **NPM Compatible**: Includes npm scripts for local development
 
 ## 📁 Project Structure
 
 ```
 atltvhead.github.io/
-├── index.html              # Main HTML file
-├── styles/
-│   └── main.css           # All styles and responsive design
+├── index.html              # 3D Model Viewer page
+├── portfolio.html          # Portfolio/About page
+├── styles.css              # All styles for both pages
 ├── js/
-│   ├── scene.js           # Three.js scene setup and management
-│   ├── modelLoader.js     # 3D model loading utilities
-│   ├── animations.js      # Animation controllers and effects
-│   └── main.js            # UI interactions and navigation
-├── models/                # Place your 3D models here (GLTF/GLB)
-├── package.json           # Project metadata
-└── README.md             # This file
+│   └── viewer.js           # 3D viewer logic and controls
+├── lib/                    # Three.js library files (local)
+│   ├── three.min.js        # Three.js core
+│   ├── OrbitControls.js    # Camera controls
+│   └── OBJLoader.js        # OBJ model loader
+├── package.json            # NPM configuration
+└── README.md              # This file
 ```
 
 ## 🚀 Getting Started
@@ -33,7 +35,7 @@ atltvhead.github.io/
 ### Prerequisites
 
 - A modern web browser (Chrome, Firefox, Safari, Edge)
-- A local web server (for loading 3D models)
+- Node.js and npm (for local development server)
 
 ### Installation
 
@@ -43,7 +45,17 @@ git clone https://github.com/ATLTVHEAD/atltvhead.github.io.git
 cd atltvhead.github.io
 ```
 
-2. Start a local web server:
+2. Install dependencies (optional, only for npm http-server):
+```bash
+npm install
+```
+
+3. Start a local web server:
+
+**Using NPM (recommended):**
+```bash
+npm run dev
+```
 
 **Using Python 3:**
 ```bash
@@ -58,77 +70,63 @@ npx http-server -p 8000
 **Using VS Code:**
 Install the "Live Server" extension and click "Go Live"
 
-3. Open your browser and navigate to:
+4. Open your browser and navigate to:
 ```
 http://localhost:8000
 ```
 
-## 🎨 Customization
+## 🎨 Adding Your Own 3D Model
 
-### Adding Your Own 3D Models
+1. Place your `atltvhead.obj` file in the project root directory
+2. The viewer will automatically attempt to load it
+3. If no model is found, a default placeholder geometry will be displayed
 
-1. Place your GLTF/GLB files in a `models/` directory
-2. Load them in `js/modelLoader.js`:
+### OBJ File Requirements
 
-```javascript
-modelLoader.loadModel('models/yourmodel.glb', 'modelName', {
-    position: { x: 0, y: 0, z: 0 },
-    scale: 1,
-    rotation: { x: 0, y: 0, z: 0 }
-});
-```
+- File format: Wavefront OBJ (`.obj`)
+- Recommended: Keep polygon count under 100k for smooth performance
+- The model will be automatically centered and scaled to fit the viewport
 
-### Customizing Colors
+## 🎮 Controls
 
-Edit the CSS variables in `styles/main.css`:
+- **Left Mouse Button**: Rotate the model
+- **Right Mouse Button**: Pan the camera
+- **Mouse Wheel**: Zoom in/out
+- **Touch**: Works on mobile devices with touch gestures
 
-```css
-:root {
-    --primary-color: #00ff88;     /* Main accent color */
-    --secondary-color: #0088ff;   /* Secondary accent */
-    --bg-color: #0a0a0a;          /* Background */
-    --text-color: #ffffff;         /* Text color */
-}
-```
+## 📄 Pages
 
-### Modifying Content
+### 3D Viewer (`index.html`)
+The main page featuring the interactive 3D model viewer with orbit controls.
 
-- **About Section**: Edit the content in `index.html` under `<section id="about">`
-- **Projects**: Update project cards in `<section id="projects">`
-- **Contact Info**: Modify social links in `<section id="contact">`
-
-## 🎯 Key Components
-
-### Scene Management (`js/scene.js`)
-- Initializes Three.js scene, camera, and renderer
-- Creates particle system background
-- Handles lighting setup
-- Manages render loop
-
-### Model Loading (`js/modelLoader.js`)
-- GLTF/GLB model loader with progress tracking
-- Geometry creation utilities
-- Animation mixer for model animations
-- Model management (add/remove/get)
-
-### Animations (`js/animations.js`)
-- Section-based model transitions
-- Floating and rotation animations
-- Smooth easing functions
-- Interactive model behaviors
-
-### UI Interactions (`js/main.js`)
-- Navigation menu functionality
-- Smooth scrolling
-- Form handling
-- Scroll effects
+### Portfolio (`portfolio.html`)
+A professional portfolio page showcasing projects, skills, and contact information.
 
 ## 🛠️ Technologies Used
 
 - **Three.js** (r128) - 3D graphics library
 - **Vanilla JavaScript** - No framework dependencies
-- **CSS3** - Modern styling with animations
+- **CSS3** - Modern styling with gradients and animations
 - **HTML5** - Semantic markup
+
+## 📦 NPM Scripts
+
+```bash
+npm run dev      # Start development server
+npm run serve    # Alias for dev
+npm run build    # No build needed (static site)
+npm run deploy   # Info about GitHub Pages deployment
+```
+
+## 🚀 Deployment
+
+This site is designed for GitHub Pages deployment:
+
+1. Push changes to the `main` branch
+2. GitHub Pages automatically deploys the site
+3. Your site will be live at `https://yourusername.github.io`
+
+No build step is required - it's a static site that works directly in the browser!
 
 ## 📱 Browser Support
 
@@ -138,45 +136,33 @@ Edit the CSS variables in `styles/main.css`:
 - Edge
 - Opera
 
-## 🎓 Learning Resources
-
-- [Three.js Documentation](https://threejs.org/docs/)
-- [Three.js Examples](https://threejs.org/examples/)
-- [WebGL Fundamentals](https://webglfundamentals.org/)
-- [GLTF Format](https://www.khronos.org/gltf/)
-
 ## 💡 Tips
 
-1. **Performance**: Keep polygon count reasonable for web (under 100k triangles)
-2. **File Size**: Compress textures and models for faster loading
+1. **Performance**: The default geometry is lightweight and renders smoothly
+2. **File Size**: Keep OBJ models optimized for web (compress textures if included)
 3. **Testing**: Test on multiple devices and browsers
-4. **Models**: Use tools like Blender to create/optimize 3D models
-5. **Lighting**: Adjust lights in `scene.js` for best model appearance
+4. **Customization**: Edit colors in `styles.css` CSS variables
 
 ## 🐛 Troubleshooting
 
-**Models not loading?**
-- Ensure you're using a local web server
+**Model not loading?**
+- Ensure `atltvhead.obj` is in the project root directory
 - Check browser console for errors
-- Verify model file paths are correct
+- Verify you're using a local web server (not `file://`)
 
 **Performance issues?**
-- Reduce particle count in `scene.js`
-- Optimize 3D model polygon count
-- Lower texture resolutions
+- Reduce model polygon count
+- Ensure you're using a modern browser
+- Check for JavaScript console errors
 
 **Blank screen?**
 - Check browser console for errors
-- Ensure Three.js CDN is accessible
-- Verify all JavaScript files are loaded
+- Verify all files are loaded correctly
+- Ensure Three.js library files are in `lib/` directory
 
 ## 📄 License
 
 MIT License - feel free to use this for your own portfolio!
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
 
 ## ✨ Credits
 
@@ -184,4 +170,4 @@ Built with ❤️ using Three.js
 
 ---
 
-**Live Demo**: [atltvhead.xyz](https://atltvhead.xyz)
+**Live Site**: [atltvhead.xyz](https://atltvhead.xyz) or [atltvhead.github.io](https://atltvhead.github.io)
