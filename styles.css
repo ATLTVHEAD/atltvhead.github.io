@@ -178,6 +178,38 @@ body {
     color: var(--text-color);
 }
 
+/* Gem Indicator */
+.gem-indicator {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(0, 212, 255, 0.2);
+    font-size: 1rem;
+}
+
+.gem-indicator span:first-child {
+    color: var(--text-secondary);
+}
+
+#gem-state-indicator {
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 0 10px currentColor;
+    transition: color 0.3s ease;
+}
+
+/* Gem Hint in Info Panel */
+.gem-hint {
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: 5px;
+    font-size: 0.85rem;
+}
+
+.gem-hint strong {
+    color: var(--secondary-color);
+}
+
 /* Info Panel */
 .info-panel {
     position: fixed;
