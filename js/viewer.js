@@ -1,7 +1,7 @@
 /**
  * viewer.js - Three.js 3D Model Viewer
  * Handles scene setup, model loading, and user controls
- * Features gemstone material effect with scroll-based hue shifting
+ * Features thin-film iridescence effect with scroll-based thickness adjustment
  */
 
 class ModelViewer {
@@ -12,8 +12,8 @@ class ModelViewer {
         this.controls = null;
         this.model = null;
         this.lights = {};
-        this.gemMaterials = []; // Store references to gem materials for hue shifting
-        this.scrollProgress = 0; // 0 = crystal, 0.5 = ruby, 1 = sapphire
+        this.iridescenceMaterials = []; // Store references to materials with iridescence
+        this.filmThickness = 380; // Default film thickness in nanometers (200-1000)
         
         this.init();
         this.setupLights();
@@ -114,101 +114,91 @@ class ModelViewer {
     }
 
     /**
-     * Create a gemstone material with the given hue
-     * @param {number} hue - Hue value (0-1)
+     * Create an iridescent material using thin-film interference
+     * @param {number} thickness - Film thickness in nanometers
      * @returns {THREE.MeshPhysicalMaterial}
      */
-    createGemMaterial(hue = 0) {
-        // Calculate color based on hue
-        // 0 = crystal (white/clear), 0.5 = ruby (red), 1.0 = sapphire (blue)
-        const color = this.getGemColor(hue);
+    createIridescenceMaterial(thickness = 380) {
+        // Create the thin-film fresnel map
+        const fresnelMap = new ThinFilmFresnelMap(thickness, 2.0, 3.0, 64);
         
-        const material = new THREE.MeshPhysicalMaterial({
-            color: color,
-            metalness: 0.0,              // Gems are not metallic
-            roughness: 0.05,             // Very smooth for brilliance
-            clearcoat: 1.0,              // Strong clearcoat for gem-like finish
-            clearcoatRoughness: 0.05,    // Very smooth clearcoat
-            ior: 2.4,                    // High index of refraction (diamond-like)
-            transmission: 0.95,          // High transmission for transparent gem look
-            thickness: 2.0,              // Thickness for refraction effect
-            reflectivity: 1.0,           // High reflectivity
-            sheen: 0.5,                  // Subtle sheen
-            sheenRoughness: 0.25,
-            sheenColor: new THREE.Color(0xffffff),
-            envMapIntensity: 2.5,        // Strong environment reflections
-            transparent: true,
-            opacity: 0.95
+        const material = new THREE.MeshStandardMaterial({
+            color: 0xffffff,
+            metalness: 0.9,
+            roughness: 0.1,
+            envMapIntensity: 1.0
         });
         
-        // Store reference for hue shifting
-        this.gemMaterials.push(material);
+        // Store the fresnel map for later updates
+        material.userData.fresnelMap = fresnelMap;
+        
+        // Override the material's onBeforeCompile to inject custom shader code
+        material.onBeforeCompile = function(shader) {
+            // Add uniform for the fresnel map
+            shader.uniforms.thinFilmFresnelMap = { value: fresnelMap };
+            
+            // Add to fragment shader - define uniform and varying
+            shader.fragmentShader = shader.fragmentShader.replace(
+                'uniform float roughness;',
+                `uniform float roughness;
+                uniform sampler2D thinFilmFresnelMap;`
+            );
+            
+            // Apply iridescence effect by modifying the final color
+            shader.fragmentShader = shader.fragmentShader.replace(
+                '#include <opaque_fragment>',
+                `
+                // Calculate iridescence based on view angle
+                vec3 viewDir = normalize(vViewPosition);
+                vec3 worldNormal = normalize(vNormal);
+                float cosTheta = max(abs(dot(worldNormal, viewDir)), 0.0);
+                vec3 fresnelColor = texture2D(thinFilmFresnelMap, vec2(cosTheta, 0.5)).rgb;
+                
+                // Gamma correct (texture is in gamma 2.0)
+                fresnelColor = fresnelColor * fresnelColor;
+                
+                // Apply iridescence to the diffuse color
+                outgoingLight = outgoingLight * fresnelColor * 2.0;
+                
+                #include <opaque_fragment>
+                `
+            );
+            
+            material.userData.shader = shader;
+        };
+        
+        // Store reference for thickness updates
+        this.iridescenceMaterials.push(material);
         
         return material;
     }
 
     /**
-     * Get gem color based on scroll progress
-     * @param {number} progress - Progress value (0-1)
-     * @returns {THREE.Color}
+     * Update all iridescent materials with new film thickness
+     * @param {number} thickness - Film thickness in nanometers (200-1000)
      */
-    getGemColor(progress) {
-        // Define colors for each state
-        const crystalColor = new THREE.Color(0xffffff);  // White/clear crystal
-        const rubyColor = new THREE.Color(0xff1744);     // Deep red ruby
-        const sapphireColor = new THREE.Color(0x2979ff); // Deep blue sapphire
+    updateFilmThickness(thickness) {
+        this.filmThickness = thickness;
         
-        let color = new THREE.Color();
-        
-        if (progress <= 0.5) {
-            // Interpolate from crystal to ruby
-            const t = progress * 2; // 0 to 1 over first half
-            color.copy(crystalColor).lerp(rubyColor, t);
-        } else {
-            // Interpolate from ruby to sapphire
-            const t = (progress - 0.5) * 2; // 0 to 1 over second half
-            color.copy(rubyColor).lerp(sapphireColor, t);
-        }
-        
-        return color;
-    }
-
-    /**
-     * Update all gem materials with new hue based on scroll
-     * @param {number} progress - Scroll progress (0-1)
-     */
-    updateGemHue(progress) {
-        const color = this.getGemColor(progress);
-        
-        this.gemMaterials.forEach(material => {
-            material.color.copy(color);
-            material.needsUpdate = true;
+        this.iridescenceMaterials.forEach(material => {
+            const fresnelMap = material.userData.fresnelMap;
+            if (fresnelMap) {
+                fresnelMap.filmThickness = thickness;
+            }
         });
         
-        // Update color indicator
-        this.updateColorIndicator(progress);
+        // Update thickness indicator
+        this.updateThicknessIndicator(thickness);
     }
 
     /**
-     * Update the color indicator UI
-     * @param {number} progress - Scroll progress (0-1)
+     * Update the thickness indicator UI
+     * @param {number} thickness - Film thickness in nanometers
      */
-    updateColorIndicator(progress) {
+    updateThicknessIndicator(thickness) {
         const indicator = document.getElementById('gem-state-indicator');
         if (indicator) {
-            let stateName;
-            if (progress < 0.25) {
-                stateName = 'Crystal';
-            } else if (progress < 0.75) {
-                stateName = 'Ruby';
-            } else {
-                stateName = 'Sapphire';
-            }
-            indicator.textContent = stateName;
-            
-            // Update indicator color
-            const color = this.getGemColor(progress);
-            indicator.style.color = `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)})`;
+            indicator.textContent = `${Math.round(thickness)}nm`;
         }
     }
 
@@ -237,10 +227,10 @@ class ModelViewer {
                 const scale = 3 / maxDim;
                 object.scale.setScalar(scale);
                 
-                // Apply gemstone material to all meshes
+                // Apply iridescence material to all meshes
                 object.traverse((child) => {
                     if (child instanceof THREE.Mesh) {
-                        child.material = this.createGemMaterial(this.scrollProgress);
+                        child.material = this.createIridescenceMaterial(this.filmThickness);
                         child.castShadow = true;
                         child.receiveShadow = true;
                     }
@@ -248,8 +238,8 @@ class ModelViewer {
                 
                 this.scene.add(object);
                 
-                // Initialize with current scroll progress
-                this.updateGemHue(this.scrollProgress);
+                // Initialize thickness indicator
+                this.updateThicknessIndicator(this.filmThickness);
                 
                 // Hide loading screen
                 loadingText.textContent = 'Model Loaded!';
@@ -281,31 +271,31 @@ class ModelViewer {
         // Create a default geometry if model file is not found
         const group = new THREE.Group();
         
-        // Create a stylized gem-like icosahedron
+        // Create a stylized iridescent icosahedron
         const geometry = new THREE.IcosahedronGeometry(1.5, 0);
-        const material = this.createGemMaterial(this.scrollProgress);
-        const gem = new THREE.Mesh(geometry, material);
-        gem.castShadow = true;
-        gem.receiveShadow = true;
-        group.add(gem);
+        const material = this.createIridescenceMaterial(this.filmThickness);
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        group.add(mesh);
         
-        // Add some smaller gems around it
+        // Add some smaller iridescent objects around it
         for (let i = 0; i < 4; i++) {
             const angle = (i / 4) * Math.PI * 2;
             const radius = 3;
             const smallGeo = new THREE.OctahedronGeometry(0.4, 0);
-            const smallGem = new THREE.Mesh(smallGeo, this.createGemMaterial(this.scrollProgress));
-            smallGem.position.x = Math.cos(angle) * radius;
-            smallGem.position.z = Math.sin(angle) * radius;
-            smallGem.castShadow = true;
-            group.add(smallGem);
+            const smallMesh = new THREE.Mesh(smallGeo, this.createIridescenceMaterial(this.filmThickness));
+            smallMesh.position.x = Math.cos(angle) * radius;
+            smallMesh.position.z = Math.sin(angle) * radius;
+            smallMesh.castShadow = true;
+            group.add(smallMesh);
         }
         
         this.model = group;
         this.scene.add(group);
         
-        // Initialize with current scroll progress
-        this.updateGemHue(this.scrollProgress);
+        // Initialize thickness indicator
+        this.updateThicknessIndicator(this.filmThickness);
     }
 
     setupEventListeners() {
@@ -316,23 +306,24 @@ class ModelViewer {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
         
-        // Handle scroll/wheel for hue shifting
+        // Handle scroll/wheel for film thickness adjustment
         // Using wheel event on the canvas container for better control
         const canvasContainer = document.getElementById('canvas-container');
         if (canvasContainer) {
             canvasContainer.addEventListener('wheel', (e) => {
-                // Only change hue when Shift key is held
+                // Only change thickness when Shift key is held
                 if (e.shiftKey) {
                     e.preventDefault();
                     
-                    // Calculate scroll delta (normalized)
-                    const delta = e.deltaY > 0 ? 0.02 : -0.02;
+                    // Calculate scroll delta
+                    // Film thickness range: 200nm to 1000nm
+                    const delta = e.deltaY > 0 ? 20 : -20;
                     
-                    // Update scroll progress (clamped between 0 and 1)
-                    this.scrollProgress = Math.max(0, Math.min(1, this.scrollProgress + delta));
+                    // Update film thickness (clamped between 200 and 1000)
+                    this.filmThickness = Math.max(200, Math.min(1000, this.filmThickness + delta));
                     
-                    // Update gem colors
-                    this.updateGemHue(this.scrollProgress);
+                    // Update materials with new thickness
+                    this.updateFilmThickness(this.filmThickness);
                 }
             }, { passive: false });
         }
