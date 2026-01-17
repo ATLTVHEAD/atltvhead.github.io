@@ -57,13 +57,13 @@ class ModelViewer {
     }
 
     setupLights() {
-        // Ambient light
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        // Ambient light - increased for better gemstone visibility
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(ambientLight);
         this.lights.ambient = ambientLight;
         
-        // Main directional light
-        const mainLight = new THREE.DirectionalLight(0x00d4ff, 0.8);
+        // Main directional light - white light for brilliance
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
         mainLight.position.set(5, 5, 5);
         mainLight.castShadow = true;
         mainLight.shadow.camera.near = 0.1;
@@ -77,22 +77,28 @@ class ModelViewer {
         this.scene.add(mainLight);
         this.lights.main = mainLight;
         
-        // Fill light
-        const fillLight = new THREE.DirectionalLight(0xff006e, 0.4);
+        // Fill light - cyan tone for iridescent color play
+        const fillLight = new THREE.DirectionalLight(0x44ffff, 0.6);
         fillLight.position.set(-5, 3, -5);
         this.scene.add(fillLight);
         this.lights.fill = fillLight;
         
-        // Back light
-        const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        // Back light - magenta for iridescent contrast
+        const backLight = new THREE.DirectionalLight(0xff44ff, 0.5);
         backLight.position.set(0, -5, -5);
         this.scene.add(backLight);
         this.lights.back = backLight;
         
         // Hemisphere light for natural lighting
-        const hemiLight = new THREE.HemisphereLight(0x00d4ff, 0x0a0a0a, 0.3);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
         this.scene.add(hemiLight);
         this.lights.hemisphere = hemiLight;
+        
+        // Additional accent light for gemstone sparkle
+        const accentLight = new THREE.PointLight(0xffaaff, 0.8, 50);
+        accentLight.position.set(3, 0, 3);
+        this.scene.add(accentLight);
+        this.lights.accent = accentLight;
     }
 
     loadModel() {
@@ -119,13 +125,19 @@ class ModelViewer {
                 const scale = 3 / maxDim;
                 object.scale.setScalar(scale);
                 
-                // Apply materials to the model
+                // Apply iridescent gemstone materials to the model
                 object.traverse((child) => {
                     if (child instanceof THREE.Mesh) {
-                        child.material = new THREE.MeshPhongMaterial({
-                            color: 0x00d4ff,
-                            shininess: 100,
-                            specular: 0x222222
+                        child.material = new THREE.MeshPhysicalMaterial({
+                            color: 0xffeeff,           // Very light pink-white base for maximum visibility
+                            metalness: 0.4,            // Moderate metalness for reflective gemstone quality
+                            roughness: 0.2,            // Low roughness for brilliant reflections
+                            clearcoat: 1.0,            // Strong clearcoat for gem-like finish with brilliance
+                            clearcoatRoughness: 0.15,  // Smooth clearcoat for shine
+                            reflectivity: 1.0,         // Maximum reflectivity
+                            envMapIntensity: 1.5,      // Environment reflections
+                            emissive: 0x8844ff,        // Vibrant purple glow for iridescent effect
+                            emissiveIntensity: 0.25    // Noticeable emission for gemstone glow
                         });
                         child.castShadow = true;
                         child.receiveShadow = true;
@@ -166,19 +178,25 @@ class ModelViewer {
         
         // Create a stylized cube with edges
         const geometry = new THREE.BoxGeometry(2, 2, 2);
-        const material = new THREE.MeshPhongMaterial({
-            color: 0x00d4ff,
-            shininess: 100,
-            specular: 0x222222
+        const material = new THREE.MeshPhysicalMaterial({
+            color: 0xffeeff,           // Very light pink-white base for maximum visibility
+            metalness: 0.4,            // Moderate metalness for reflective gemstone quality
+            roughness: 0.2,            // Low roughness for brilliant reflections
+            clearcoat: 1.0,            // Strong clearcoat for gem-like finish with brilliance
+            clearcoatRoughness: 0.15,  // Smooth clearcoat for shine
+            reflectivity: 1.0,         // Maximum reflectivity
+            envMapIntensity: 1.5,      // Environment reflections
+            emissive: 0x8844ff,        // Vibrant purple glow for iridescent effect
+            emissiveIntensity: 0.25    // Noticeable emission for gemstone glow
         });
         const cube = new THREE.Mesh(geometry, material);
         cube.castShadow = true;
         cube.receiveShadow = true;
         group.add(cube);
         
-        // Add edges for better visibility
+        // Add edges for better visibility with iridescent colors
         const edges = new THREE.EdgesGeometry(geometry);
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff006e, linewidth: 2 });
+        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xcc99ff, linewidth: 2 });
         const wireframe = new THREE.LineSegments(edges, lineMaterial);
         group.add(wireframe);
         
