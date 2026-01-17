@@ -210,6 +210,18 @@ class ModelViewer {
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
+        
+        // Handle info panel collapse
+        const collapseBtn = document.getElementById('collapse-info-btn');
+        const infoPanel = document.querySelector('.info-panel');
+        
+        if (collapseBtn && infoPanel) {
+            collapseBtn.addEventListener('click', () => {
+                infoPanel.classList.toggle('collapsed');
+                // Change button text based on state
+                collapseBtn.textContent = infoPanel.classList.contains('collapsed') ? '+' : '−';
+            });
+        }
     }
 
     animate() {
