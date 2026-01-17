@@ -4,8 +4,10 @@
   "description": "Interactive 3D Portfolio Website using Three.js",
   "main": "index.html",
   "scripts": {
-    "dev": "python -m http.server 8000",
-    "serve": "python3 -m http.server 8000"
+    "dev": "npx http-server -p 8000 -c-1",
+    "serve": "npx http-server -p 8000 -c-1",
+    "build": "echo 'Static site - no build required'",
+    "deploy": "echo 'Deployment handled by GitHub Pages'"
   },
   "keywords": [
     "portfolio",
