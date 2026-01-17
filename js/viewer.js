@@ -14,6 +14,10 @@ class ModelViewer {
         this.lights = {};
         this.iridescenceMaterials = []; // Store references to materials with iridescence
         this.filmThickness = 380; // Default film thickness in nanometers (200-1000)
+        this.iridescenceBoost = 15.0; // Intensity multiplier for iridescence effect
+        
+        // Texture sampling offset to prevent glossy artifacts at texture boundaries
+        this.TEXTURE_SAMPLE_OFFSET = 0.99;
         
         this.init();
         this.setupLights();
@@ -137,7 +141,6 @@ class ModelViewer {
         
         // Create texture from canvas
         const texture = new THREE.CanvasTexture(canvas);
-        texture.mapping = THREE.EquirectangularReflectionMapping;
         texture.needsUpdate = true;
         
         this.envMap = texture;
@@ -167,7 +170,10 @@ class ModelViewer {
         material.onBeforeCompile = (shader) => {
             // Add uniform for the fresnel map
             shader.uniforms.thinFilmFresnelMap = { value: fresnelMap };
-            shader.uniforms.iridescenceBoost = { value: 15.0 };
+            shader.uniforms.iridescenceBoost = { value: this.iridescenceBoost };
+            
+            // Store reference to texture sample offset for shader
+            const textureSampleOffset = this.TEXTURE_SAMPLE_OFFSET;
             
             // Add to fragment shader - define uniform
             shader.fragmentShader = shader.fragmentShader.replace(
@@ -187,8 +193,8 @@ class ModelViewer {
                 vec3 worldNormal = normalize(vNormal);
                 float NdotV = max(dot(worldNormal, -viewDir), 0.0);
                 
-                // Sample iridescence texture (use .99 to hide glossy artifacts)
-                vec3 iridescence = texture2D(thinFilmFresnelMap, vec2(NdotV * 0.99, 0.5)).rgb;
+                // Sample iridescence texture with offset to hide glossy artifacts at boundaries
+                vec3 iridescence = texture2D(thinFilmFresnelMap, vec2(NdotV * ${textureSampleOffset.toFixed(2)}, 0.5)).rgb;
                 
                 // Gamma correct (texture is in gamma 2.0)
                 iridescence = iridescence * iridescence;
