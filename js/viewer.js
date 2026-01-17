@@ -111,22 +111,53 @@ class ModelViewer {
         accentLight2.position.set(-3, 2, -3);
         this.scene.add(accentLight2);
         this.lights.accent2 = accentLight2;
+        
+        // Create a simple environment map for iridescence reflections
+        this.createEnvironmentMap();
+    }
+
+    /**
+     * Create a simple environment map for reflections
+     */
+    createEnvironmentMap() {
+        // Create a simple colored cube map for iridescence visibility
+        const size = 512;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        
+        // Create a gradient background
+        const gradient = ctx.createLinearGradient(0, 0, size, size);
+        gradient.addColorStop(0, '#4facfe');
+        gradient.addColorStop(0.5, '#00f2fe');
+        gradient.addColorStop(1, '#43e97b');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, size, size);
+        
+        // Create texture from canvas
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        texture.needsUpdate = true;
+        
+        this.envMap = texture;
     }
 
     /**
      * Create an iridescent material using thin-film interference
      * @param {number} thickness - Film thickness in nanometers
-     * @returns {THREE.MeshPhysicalMaterial}
+     * @returns {THREE.MeshStandardMaterial}
      */
     createIridescenceMaterial(thickness = 380) {
         // Create the thin-film fresnel map
         const fresnelMap = new ThinFilmFresnelMap(thickness, 2.0, 3.0, 64);
         
         const material = new THREE.MeshStandardMaterial({
-            color: 0xffffff,
-            metalness: 0.9,
-            roughness: 0.1,
-            envMapIntensity: 1.0
+            color: 0x111111,
+            metalness: 1.0,
+            roughness: 0.15,
+            envMap: this.envMap,
+            envMapIntensity: 1.5
         });
         
         // Store the fresnel map for later updates
@@ -136,31 +167,36 @@ class ModelViewer {
         material.onBeforeCompile = (shader) => {
             // Add uniform for the fresnel map
             shader.uniforms.thinFilmFresnelMap = { value: fresnelMap };
+            shader.uniforms.iridescenceBoost = { value: 15.0 };
             
-            // Add to fragment shader - define uniform and varying
+            // Add to fragment shader - define uniform
             shader.fragmentShader = shader.fragmentShader.replace(
                 'uniform float roughness;',
                 `uniform float roughness;
-                uniform sampler2D thinFilmFresnelMap;`
+                uniform sampler2D thinFilmFresnelMap;
+                uniform float iridescenceBoost;`
             );
             
-            // Apply iridescence effect by modifying the final color
+            // Apply iridescence colors as additive lighting
+            // This approach adds the spectral colors on top of the base lighting
             shader.fragmentShader = shader.fragmentShader.replace(
                 '#include <opaque_fragment>',
                 `
                 // Calculate iridescence based on view angle
                 vec3 viewDir = normalize(vViewPosition);
                 vec3 worldNormal = normalize(vNormal);
-                // Use abs() to handle both front and back faces of the mesh
-                float cosTheta = max(abs(dot(worldNormal, viewDir)), 0.0);
-                vec3 fresnelColor = texture2D(thinFilmFresnelMap, vec2(cosTheta, 0.5)).rgb;
+                float NdotV = max(dot(worldNormal, -viewDir), 0.0);
+                
+                // Sample iridescence texture (use .99 to hide glossy artifacts)
+                vec3 iridescence = texture2D(thinFilmFresnelMap, vec2(NdotV * 0.99, 0.5)).rgb;
                 
                 // Gamma correct (texture is in gamma 2.0)
-                fresnelColor = fresnelColor * fresnelColor;
+                iridescence = iridescence * iridescence;
                 
-                // Apply iridescence to the diffuse color
-                // Multiply by 2.0 to boost the iridescence visibility
-                outgoingLight = outgoingLight * fresnelColor * 2.0;
+                // Add iridescence as specular-like highlight
+                // Use fresnel effect to make it more visible at grazing angles
+                float fresnelEffect = pow(1.0 - NdotV, 3.0);
+                outgoingLight += iridescence * iridescenceBoost * (0.5 + fresnelEffect);
                 
                 #include <opaque_fragment>
                 `
