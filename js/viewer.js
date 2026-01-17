@@ -133,7 +133,7 @@ class ModelViewer {
         material.userData.fresnelMap = fresnelMap;
         
         // Override the material's onBeforeCompile to inject custom shader code
-        material.onBeforeCompile = function(shader) {
+        material.onBeforeCompile = (shader) => {
             // Add uniform for the fresnel map
             shader.uniforms.thinFilmFresnelMap = { value: fresnelMap };
             
@@ -151,6 +151,7 @@ class ModelViewer {
                 // Calculate iridescence based on view angle
                 vec3 viewDir = normalize(vViewPosition);
                 vec3 worldNormal = normalize(vNormal);
+                // Use abs() to handle both front and back faces of the mesh
                 float cosTheta = max(abs(dot(worldNormal, viewDir)), 0.0);
                 vec3 fresnelColor = texture2D(thinFilmFresnelMap, vec2(cosTheta, 0.5)).rgb;
                 
@@ -158,6 +159,7 @@ class ModelViewer {
                 fresnelColor = fresnelColor * fresnelColor;
                 
                 // Apply iridescence to the diffuse color
+                // Multiply by 2.0 to boost the iridescence visibility
                 outgoingLight = outgoingLight * fresnelColor * 2.0;
                 
                 #include <opaque_fragment>
