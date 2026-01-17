@@ -135,7 +135,6 @@ class ModelViewer {
                             clearcoat: 1.0,            // Strong clearcoat for gem-like finish with brilliance
                             clearcoatRoughness: 0.15,  // Smooth clearcoat for shine
                             reflectivity: 1.0,         // Maximum reflectivity
-                            envMapIntensity: 1.5,      // Environment reflections
                             emissive: 0x8844ff,        // Vibrant purple glow for iridescent effect
                             emissiveIntensity: 0.25    // Noticeable emission for gemstone glow
                         });
@@ -185,7 +184,6 @@ class ModelViewer {
             clearcoat: 1.0,            // Strong clearcoat for gem-like finish with brilliance
             clearcoatRoughness: 0.15,  // Smooth clearcoat for shine
             reflectivity: 1.0,         // Maximum reflectivity
-            envMapIntensity: 1.5,      // Environment reflections
             emissive: 0x8844ff,        // Vibrant purple glow for iridescent effect
             emissiveIntensity: 0.25    // Noticeable emission for gemstone glow
         });
