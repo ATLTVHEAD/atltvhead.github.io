@@ -40,23 +40,23 @@
             <li><strong>Left Mouse:</strong> Rotate</li>
             <li><strong>Right Mouse:</strong> Pan</li>
             <li><strong>Scroll:</strong> Zoom</li>
-            <li><strong>Shift + Scroll:</strong> Change Gem Color</li>
+            <li><strong>Shift + Scroll:</strong> Adjust Film Thickness</li>
         </ul>
         <div class="gem-indicator">
-            <span>Gem: </span>
-            <span id="gem-state-indicator">Crystal</span>
+            <span>Film: </span>
+            <span id="gem-state-indicator">380nm</span>
         </div>
     </div>
 
     <!-- Info Panel -->
     <div class="info-panel">
         <div class="info-panel-header">
-            <h2>Gemstone Viewer</h2>
+            <h2>Iridescence Viewer</h2>
             <button class="collapse-btn" id="collapse-info-btn" aria-label="Toggle info panel">−</button>
         </div>
         <div class="info-panel-content">
-            <p>Explore the 3D model using your mouse or touch controls.</p>
-            <p class="gem-hint">Hold <strong>Shift</strong> and scroll to change the gem from Crystal → Ruby → Sapphire.</p>
+            <p>Explore the 3D model with thin-film iridescence effect.</p>
+            <p class="gem-hint">Hold <strong>Shift</strong> and scroll to adjust the thin-film thickness (200nm - 1000nm).</p>
         </div>
     </div>
 
@@ -66,6 +66,8 @@
     <script src="lib/OrbitControls.js"></script>
     <!-- OBJLoader -->
     <script src="lib/OBJLoader.js"></script>
+    <!-- ThinFilmFresnelMap -->
+    <script src="lib/ThinFilmFresnelMap.js"></script>
     <!-- Main Application Script -->
     <script src="js/viewer.js"></script>
 </body>
