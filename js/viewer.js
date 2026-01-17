@@ -68,50 +68,50 @@ class ModelViewer {
     }
 
     setupLights() {
-        // Ambient light - increased for better gemstone visibility
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        // Ambient light - reduced for better color contrast
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         this.scene.add(ambientLight);
         this.lights.ambient = ambientLight;
         
-        // Main directional light - white light for brilliance
-        const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
-        mainLight.position.set(5, 5, 5);
-        mainLight.castShadow = true;
-        mainLight.shadow.camera.near = 0.1;
-        mainLight.shadow.camera.far = 50;
-        mainLight.shadow.camera.left = -10;
-        mainLight.shadow.camera.right = 10;
-        mainLight.shadow.camera.top = 10;
-        mainLight.shadow.camera.bottom = -10;
-        mainLight.shadow.mapSize.width = 2048;
-        mainLight.shadow.mapSize.height = 2048;
-        this.scene.add(mainLight);
-        this.lights.main = mainLight;
+        // Colored directional light 1 - Cyan from top-right
+        const cyanLight = new THREE.DirectionalLight(0x00ffff, 1.2);
+        cyanLight.position.set(5, 5, 5);
+        cyanLight.castShadow = true;
+        cyanLight.shadow.camera.near = 0.1;
+        cyanLight.shadow.camera.far = 50;
+        cyanLight.shadow.camera.left = -10;
+        cyanLight.shadow.camera.right = 10;
+        cyanLight.shadow.camera.top = 10;
+        cyanLight.shadow.camera.bottom = -10;
+        cyanLight.shadow.mapSize.width = 2048;
+        cyanLight.shadow.mapSize.height = 2048;
+        this.scene.add(cyanLight);
+        this.lights.cyan = cyanLight;
         
-        // Fill light - for better visibility from the side
-        const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        fillLight.position.set(-5, 3, -5);
-        this.scene.add(fillLight);
-        this.lights.fill = fillLight;
+        // Colored directional light 2 - Magenta from left
+        const magentaLight = new THREE.DirectionalLight(0xff00ff, 0.9);
+        magentaLight.position.set(-5, 3, -5);
+        this.scene.add(magentaLight);
+        this.lights.magenta = magentaLight;
         
-        // Back light - for rim lighting effect
-        const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
-        backLight.position.set(0, -5, -5);
-        this.scene.add(backLight);
-        this.lights.back = backLight;
+        // Colored directional light 3 - Yellow from below-back
+        const yellowLight = new THREE.DirectionalLight(0xffff00, 0.7);
+        yellowLight.position.set(0, -5, -5);
+        this.scene.add(yellowLight);
+        this.lights.yellow = yellowLight;
         
-        // Hemisphere light for natural lighting
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+        // Hemisphere light for natural lighting with subtle color
+        const hemiLight = new THREE.HemisphereLight(0x8888ff, 0xff8844, 0.3);
         this.scene.add(hemiLight);
         this.lights.hemisphere = hemiLight;
         
-        // Additional accent lights for gemstone sparkle
-        const accentLight1 = new THREE.PointLight(0xffffff, 1.0, 50);
+        // Additional accent lights with color for iridescence enhancement
+        const accentLight1 = new THREE.PointLight(0xff4488, 0.8, 50);
         accentLight1.position.set(3, 0, 3);
         this.scene.add(accentLight1);
         this.lights.accent1 = accentLight1;
         
-        const accentLight2 = new THREE.PointLight(0xffffff, 0.8, 50);
+        const accentLight2 = new THREE.PointLight(0x44ffaa, 0.6, 50);
         accentLight2.position.set(-3, 2, -3);
         this.scene.add(accentLight2);
         this.lights.accent2 = accentLight2;
