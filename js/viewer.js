@@ -1,6 +1,7 @@
 /**
  * viewer.js - Three.js 3D Model Viewer
  * Handles scene setup, model loading, and user controls
+ * Features gemstone material effect with scroll-based hue shifting
  */
 
 class ModelViewer {
@@ -11,6 +12,8 @@ class ModelViewer {
         this.controls = null;
         this.model = null;
         this.lights = {};
+        this.gemMaterials = []; // Store references to gem materials for hue shifting
+        this.scrollProgress = 0; // 0 = crystal, 0.5 = ruby, 1 = sapphire
         
         this.init();
         this.setupLights();
@@ -36,15 +39,19 @@ class ModelViewer {
         );
         this.camera.position.set(0, 0, 5);
         
-        // Create renderer
+        // Create renderer with enhanced settings for gem effects
         this.renderer = new THREE.WebGLRenderer({
             canvas: canvas,
-            antialias: true
+            antialias: true,
+            alpha: true
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.5;
+        this.renderer.outputEncoding = THREE.sRGBEncoding;
         
         // Create orbit controls
         this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
@@ -58,12 +65,12 @@ class ModelViewer {
 
     setupLights() {
         // Ambient light - increased for better gemstone visibility
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
         this.scene.add(ambientLight);
         this.lights.ambient = ambientLight;
         
         // Main directional light - white light for brilliance
-        const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
         mainLight.position.set(5, 5, 5);
         mainLight.castShadow = true;
         mainLight.shadow.camera.near = 0.1;
@@ -77,29 +84,134 @@ class ModelViewer {
         this.scene.add(mainLight);
         this.lights.main = mainLight;
         
-        // Fill light - cyan tone for iridescent color play
-        const fillLight = new THREE.DirectionalLight(0x44ffff, 0.6);
+        // Fill light - for better visibility from the side
+        const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
         fillLight.position.set(-5, 3, -5);
         this.scene.add(fillLight);
         this.lights.fill = fillLight;
         
-        // Back light - magenta for iridescent contrast
-        const backLight = new THREE.DirectionalLight(0xff44ff, 0.5);
+        // Back light - for rim lighting effect
+        const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
         backLight.position.set(0, -5, -5);
         this.scene.add(backLight);
         this.lights.back = backLight;
         
         // Hemisphere light for natural lighting
-        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
         this.scene.add(hemiLight);
         this.lights.hemisphere = hemiLight;
         
-        // Additional accent light for gemstone sparkle
-        const accentLight = new THREE.PointLight(0xffaaff, 0.8, 50);
-        accentLight.position.set(3, 0, 3);
-        this.scene.add(accentLight);
-        this.lights.accent = accentLight;
+        // Additional accent lights for gemstone sparkle
+        const accentLight1 = new THREE.PointLight(0xffffff, 1.0, 50);
+        accentLight1.position.set(3, 0, 3);
+        this.scene.add(accentLight1);
+        this.lights.accent1 = accentLight1;
+        
+        const accentLight2 = new THREE.PointLight(0xffffff, 0.8, 50);
+        accentLight2.position.set(-3, 2, -3);
+        this.scene.add(accentLight2);
+        this.lights.accent2 = accentLight2;
     }
+
+    /**
+     * Create a gemstone material with the given hue
+     * @param {number} hue - Hue value (0-1)
+     * @returns {THREE.MeshPhysicalMaterial}
+     */
+    createGemMaterial(hue = 0) {
+        // Calculate color based on hue
+        // 0 = crystal (white/clear), 0.5 = ruby (red), 1.0 = sapphire (blue)
+        const color = this.getGemColor(hue);
+        
+        const material = new THREE.MeshPhysicalMaterial({
+            color: color,
+            metalness: 0.0,              // Gems are not metallic
+            roughness: 0.05,             // Very smooth for brilliance
+            clearcoat: 1.0,              // Strong clearcoat for gem-like finish
+            clearcoatRoughness: 0.05,    // Very smooth clearcoat
+            ior: 2.4,                    // High index of refraction (diamond-like)
+            transmission: 0.95,          // High transmission for transparent gem look
+            thickness: 2.0,              // Thickness for refraction effect
+            reflectivity: 1.0,           // High reflectivity
+            sheen: 0.5,                  // Subtle sheen
+            sheenRoughness: 0.25,
+            sheenColor: new THREE.Color(0xffffff),
+            envMapIntensity: 2.5,        // Strong environment reflections
+            transparent: true,
+            opacity: 0.95
+        });
+        
+        // Store reference for hue shifting
+        this.gemMaterials.push(material);
+        
+        return material;
+    }
+
+    /**
+     * Get gem color based on scroll progress
+     * @param {number} progress - Progress value (0-1)
+     * @returns {THREE.Color}
+     */
+    getGemColor(progress) {
+        // Define colors for each state
+        const crystalColor = new THREE.Color(0xffffff);  // White/clear crystal
+        const rubyColor = new THREE.Color(0xff1744);     // Deep red ruby
+        const sapphireColor = new THREE.Color(0x2979ff); // Deep blue sapphire
+        
+        let color = new THREE.Color();
+        
+        if (progress <= 0.5) {
+            // Interpolate from crystal to ruby
+            const t = progress * 2; // 0 to 1 over first half
+            color.copy(crystalColor).lerp(rubyColor, t);
+        } else {
+            // Interpolate from ruby to sapphire
+            const t = (progress - 0.5) * 2; // 0 to 1 over second half
+            color.copy(rubyColor).lerp(sapphireColor, t);
+        }
+        
+        return color;
+    }
+
+    /**
+     * Update all gem materials with new hue based on scroll
+     * @param {number} progress - Scroll progress (0-1)
+     */
+    updateGemHue(progress) {
+        const color = this.getGemColor(progress);
+        
+        this.gemMaterials.forEach(material => {
+            material.color.copy(color);
+            material.needsUpdate = true;
+        });
+        
+        // Update color indicator
+        this.updateColorIndicator(progress);
+    }
+
+    /**
+     * Update the color indicator UI
+     * @param {number} progress - Scroll progress (0-1)
+     */
+    updateColorIndicator(progress) {
+        const indicator = document.getElementById('gem-state-indicator');
+        if (indicator) {
+            let stateName;
+            if (progress < 0.25) {
+                stateName = 'Crystal';
+            } else if (progress < 0.75) {
+                stateName = 'Ruby';
+            } else {
+                stateName = 'Sapphire';
+            }
+            indicator.textContent = stateName;
+            
+            // Update indicator color
+            const color = this.getGemColor(progress);
+            indicator.style.color = `rgb(${Math.round(color.r * 255)}, ${Math.round(color.g * 255)}, ${Math.round(color.b * 255)})`;
+        }
+    }
+
 
     loadModel() {
         const loader = new THREE.OBJLoader();
@@ -125,25 +237,19 @@ class ModelViewer {
                 const scale = 3 / maxDim;
                 object.scale.setScalar(scale);
                 
-                // Apply iridescent gemstone materials to the model
+                // Apply gemstone material to all meshes
                 object.traverse((child) => {
                     if (child instanceof THREE.Mesh) {
-                        child.material = new THREE.MeshPhysicalMaterial({
-                            color: 0xffeeff,           // Very light pink-white base for maximum visibility
-                            metalness: 0.4,            // Moderate metalness for reflective gemstone quality
-                            roughness: 0.2,            // Low roughness for brilliant reflections
-                            clearcoat: 1.0,            // Strong clearcoat for gem-like finish with brilliance
-                            clearcoatRoughness: 0.15,  // Smooth clearcoat for shine
-                            ior: 2.4,                  // High index of refraction like a diamond for brilliance
-                            emissive: 0x8844ff,        // Vibrant purple glow for iridescent effect
-                            emissiveIntensity: 0.25    // Noticeable emission for gemstone glow
-                        });
+                        child.material = this.createGemMaterial(this.scrollProgress);
                         child.castShadow = true;
                         child.receiveShadow = true;
                     }
                 });
                 
                 this.scene.add(object);
+                
+                // Initialize with current scroll progress
+                this.updateGemHue(this.scrollProgress);
                 
                 // Hide loading screen
                 loadingText.textContent = 'Model Loaded!';
@@ -175,48 +281,31 @@ class ModelViewer {
         // Create a default geometry if model file is not found
         const group = new THREE.Group();
         
-        // Create a stylized cube with edges
-        const geometry = new THREE.BoxGeometry(2, 2, 2);
-        const material = new THREE.MeshPhysicalMaterial({
-            color: 0xffeeff,           // Very light pink-white base for maximum visibility
-            metalness: 0.4,            // Moderate metalness for reflective gemstone quality
-            roughness: 0.2,            // Low roughness for brilliant reflections
-            clearcoat: 1.0,            // Strong clearcoat for gem-like finish with brilliance
-            clearcoatRoughness: 0.15,  // Smooth clearcoat for shine
-            ior: 2.4,                  // High index of refraction like a diamond for brilliance
-            emissive: 0x8844ff,        // Vibrant purple glow for iridescent effect
-            emissiveIntensity: 0.25    // Noticeable emission for gemstone glow
-        });
-        const cube = new THREE.Mesh(geometry, material);
-        cube.castShadow = true;
-        cube.receiveShadow = true;
-        group.add(cube);
+        // Create a stylized gem-like icosahedron
+        const geometry = new THREE.IcosahedronGeometry(1.5, 0);
+        const material = this.createGemMaterial(this.scrollProgress);
+        const gem = new THREE.Mesh(geometry, material);
+        gem.castShadow = true;
+        gem.receiveShadow = true;
+        group.add(gem);
         
-        // Add edges for better visibility with iridescent colors
-        const edges = new THREE.EdgesGeometry(geometry);
-        const lineMaterial = new THREE.LineBasicMaterial({ color: 0xcc99ff, linewidth: 2 });
-        const wireframe = new THREE.LineSegments(edges, lineMaterial);
-        group.add(wireframe);
-        
-        // Add some smaller cubes around it
+        // Add some smaller gems around it
         for (let i = 0; i < 4; i++) {
             const angle = (i / 4) * Math.PI * 2;
             const radius = 3;
-            const smallGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-            const smallCube = new THREE.Mesh(smallGeo, material);
-            smallCube.position.x = Math.cos(angle) * radius;
-            smallCube.position.z = Math.sin(angle) * radius;
-            smallCube.castShadow = true;
-            group.add(smallCube);
-            
-            const smallEdges = new THREE.EdgesGeometry(smallGeo);
-            const smallWireframe = new THREE.LineSegments(smallEdges, lineMaterial);
-            smallWireframe.position.copy(smallCube.position);
-            group.add(smallWireframe);
+            const smallGeo = new THREE.OctahedronGeometry(0.4, 0);
+            const smallGem = new THREE.Mesh(smallGeo, this.createGemMaterial(this.scrollProgress));
+            smallGem.position.x = Math.cos(angle) * radius;
+            smallGem.position.z = Math.sin(angle) * radius;
+            smallGem.castShadow = true;
+            group.add(smallGem);
         }
         
         this.model = group;
         this.scene.add(group);
+        
+        // Initialize with current scroll progress
+        this.updateGemHue(this.scrollProgress);
     }
 
     setupEventListeners() {
@@ -226,6 +315,27 @@ class ModelViewer {
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
+        
+        // Handle scroll/wheel for hue shifting
+        // Using wheel event on the canvas container for better control
+        const canvasContainer = document.getElementById('canvas-container');
+        if (canvasContainer) {
+            canvasContainer.addEventListener('wheel', (e) => {
+                // Only change hue when Shift key is held
+                if (e.shiftKey) {
+                    e.preventDefault();
+                    
+                    // Calculate scroll delta (normalized)
+                    const delta = e.deltaY > 0 ? 0.02 : -0.02;
+                    
+                    // Update scroll progress (clamped between 0 and 1)
+                    this.scrollProgress = Math.max(0, Math.min(1, this.scrollProgress + delta));
+                    
+                    // Update gem colors
+                    this.updateGemHue(this.scrollProgress);
+                }
+            }, { passive: false });
+        }
         
         // Handle info panel collapse
         const collapseBtn = document.getElementById('collapse-info-btn');
