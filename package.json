@@ -1,0 +1,25 @@
+{
+  "name": "atltvhead-portfolio",
+  "version": "1.0.0",
+  "description": "Interactive 3D Portfolio Website using Three.js",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "serve": "python3 -m http.server 8000"
+  },
+  "keywords": [
+    "portfolio",
+    "three.js",
+    "3d",
+    "webgl",
+    "interactive"
+  ],
+  "author": "Atltvhead",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ATLTVHEAD/atltvhead.github.io.git"
+  }
+}
