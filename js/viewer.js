@@ -36,7 +36,7 @@ class ModelViewer {
         
         // Create camera
         this.camera = new THREE.PerspectiveCamera(
-            75,
+            50,
             window.innerWidth / window.innerHeight,
             0.1,
             1000
@@ -265,11 +265,15 @@ class ModelViewer {
                 const center = box.getCenter(new THREE.Vector3());
                 object.position.sub(center);
                 
-                // Scale the model to fit in view
+                // Scale the model to fit in view and fill the frame more
                 const size = box.getSize(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
-                const scale = 3 / maxDim;
+                const scale = 4.5 / maxDim;
                 object.scale.setScalar(scale);
+                
+                // Update camera and controls to center on the model
+                this.controls.target.set(0, 0, 0);
+                this.controls.update();
                 
                 // Apply iridescence material to all meshes
                 object.traverse((child) => {
