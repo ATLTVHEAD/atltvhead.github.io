@@ -607,6 +607,10 @@ footer {
     border: 1px solid rgba(0, 212, 255, 0.2);
     transition: var(--transition);
     background: var(--card-bg);
+    height: 500px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .gallery-item:hover {
@@ -616,8 +620,8 @@ footer {
 }
 
 .gallery-item img {
-    width: 100%;
-    height: auto;
+    width: auto;
+    height: 100%;
     display: block;
     transition: var(--transition);
 }
