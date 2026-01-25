@@ -73,7 +73,7 @@ class ProgressiveImageLoader {
         tempImg.onerror = () => {
             // If image fails to load, trigger the onerror handler if it exists
             if (img.onerror) {
-                img.onerror();
+                img.onerror.call(img);
             }
         };
 

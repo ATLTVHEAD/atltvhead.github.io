@@ -631,7 +631,6 @@ footer {
     z-index: 1;
 }
 
-.gallery-item img.loaded ~ ::before,
 .gallery-item:has(img.loaded)::before {
     opacity: 0;
 }
@@ -660,6 +659,8 @@ footer {
     /* Progressive loading styles */
     filter: blur(10px);
     opacity: 0.8;
+    position: relative;
+    z-index: 2;
 }
 
 .gallery-item img.loaded {
