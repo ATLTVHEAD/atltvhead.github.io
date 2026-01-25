@@ -624,6 +624,7 @@ footer {
     height: 100%;
     display: block;
     transition: var(--transition);
+    object-fit: contain;
 }
 
 .gallery-item:hover img {
