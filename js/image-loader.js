@@ -66,14 +66,21 @@ class ProgressiveImageLoader {
             img.src = fullSrc;
             img.classList.add('loaded');
             
+            // Remove shimmer from parent
+            const parent = img.closest('.gallery-item');
+            if (parent) {
+                parent.classList.add('image-loaded');
+            }
+            
             // Clean up
             img.removeAttribute('data-src');
         };
 
         tempImg.onerror = () => {
-            // If image fails to load, trigger the onerror handler if it exists
+            // If image fails to load, trigger the onerror handler on the actual img element
             if (img.onerror) {
-                img.onerror.call(img);
+                const errorEvent = new Event('error');
+                img.dispatchEvent(errorEvent);
             }
         };
 

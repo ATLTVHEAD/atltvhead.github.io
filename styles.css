@@ -631,7 +631,7 @@ footer {
     z-index: 1;
 }
 
-.gallery-item:has(img.loaded)::before {
+.gallery-item.image-loaded::before {
     opacity: 0;
 }
 
