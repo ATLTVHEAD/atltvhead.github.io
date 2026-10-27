@@ -133,42 +133,43 @@ Modify `package.json`, `index.html`, and `portfolio.html` only for test/dev scri
   - [x] GREEN: focused tests and full unit suite pass.
   - [x] Helper `clampInputAxes`: test both bounds and non-finite values.
 - [x] Run `npm run test:unit -- tests/unit/planet-math.test.js` and `npm run test:unit -- tests/unit/skater-simulation.test.js`; record RED before implementation and GREEN after implementation.
-- [x] Commit: `feat: add spherical skater simulation`.
+- [x] Commit: `feat: add spherical skater simulation` (`b30d83`).
 
 ## Task 3 — Milestone 2: Low-Poly Spherical City Blockout
 
 **Outcome:** The planet is a small traversable city, not a bare sphere; a continuous route includes streets and skate features.
 
-**Files:** Create `js/game/world/city-layout.js`, `js/game/render/city-scene.js`, and `tests/unit/city-layout.test.js`, `tests/e2e/city-world.spec.js`.
+**Files:** Create `js/game/world/city-layout.js`, `js/game/render/city-scene.js`, and `tests/unit/city-layout.test.js`, `tests/e2e/city-world.spec.js`; modify `js/game/main.js` to mount the city on the game page.
 
 **Interfaces:** `CityLayout` contains a planet radius, route graph, rideable street/ramp surface records, and rail segments. Surface points and normals are returned in world coordinates.
 
-- [ ] **Function M2-F1 — `createCityLayout({ radius, seed }) -> CityLayout`**
-  - [ ] RED: `createCityLayout_isDeterministic`, `cityLayout_hasConnectedRideLoop`, and `cityLayout_includesRampAndRail` fail before implementation.
-  - [ ] Implement deterministic city route and feature data.
-  - [ ] GREEN: focused tests and full unit suite pass.
-  - [ ] Helper `isRouteGraphConnected`: test empty, disconnected, and connected graphs.
-- [ ] **Function M2-F2 — `findRideableSurface(layout, position) -> SurfaceHit | null`**
-  - [ ] RED: `findRideableSurface_hitsStreetAndRamp`, `findRideableSurface_rejectsBuilding`, and `findRideableSurface_returnsSphericalNormal` fail before implementation.
-  - [ ] Implement surface lookup and stable route-join selection.
-  - [ ] GREEN: focused tests and full unit suite pass.
-  - [ ] Helper `surfaceDistanceToRecord`: test street, ramp, route-join, and curved-surface distances.
-- [ ] **Function M2-F3 — `findGrindRail(layout, position, forward) -> RailHit | null`**
-  - [ ] RED: `findGrindRail_findsNearestAlignedRail` and `findGrindRail_rejectsOutsideTolerance` fail before implementation.
-  - [ ] Implement nearest eligible rail lookup.
-  - [ ] GREEN: focused tests and full unit suite pass.
-  - [ ] Helper `projectOntoRail`: test endpoints, midpoint, and out-of-range positions.
-- [ ] **Function M2-F4 — `createCityScene(THREE, layout) -> THREE.Group`**
-  - [ ] RED: `cityWorld_rendersCurvedStreetsRampsAndRails` fails before implementation.
-  - [ ] Implement the graybox scene builder; final art is not a dependency for gameplay.
-  - [ ] GREEN: Playwright test and visual review pass; capture a screenshot.
-  - [ ] Helper `buildStreetMesh`: test mesh placement follows route surface data.
-  - [ ] Helper `buildBuildingMesh`: test building bases sit on the curved city surface.
-  - [ ] Helper `buildRampMesh`: test ramp mesh and rideable surface align.
-  - [ ] Helper `buildRailMesh`: test rail mesh matches its grind segment.
-- [ ] Run `npm run test:unit -- tests/unit/city-layout.test.js` and `npm run test:e2e -- tests/e2e/city-world.spec.js`; record RED/GREEN for each function.
-- [ ] Manual check: ride the connected route across multiple orientations; confirm there is no flat-world seam or obvious gap in the city path.
-- [ ] Commit: `feat: add spherical city skate routes`.
+- [x] **Function M2-F1 — `createCityLayout({ radius, seed }) -> CityLayout`**
+  - [x] RED: `createCityLayout_isDeterministic`, `cityLayout_hasConnectedRideLoop`, and `cityLayout_includesRampAndRail` failed before implementation.
+  - [x] Implement deterministic city route and feature data.
+  - [x] GREEN: focused tests and full unit suite pass.
+  - [x] Helper `isRouteGraphConnected`: test empty, disconnected, and connected graphs.
+- [x] **Function M2-F2 — `findRideableSurface(layout, position) -> SurfaceHit | null`**
+  - [x] RED: `findRideableSurface_hitsStreetAndRamp`, `findRideableSurface_rejectsBuilding`, and `findRideableSurface_returnsSphericalNormal` failed before implementation.
+  - [x] Implement surface lookup and stable route-join selection.
+  - [x] GREEN: focused tests and full unit suite pass.
+  - [x] Helper `surfaceDistanceToRecord`: test street, ramp, route-join, and curved-surface distances.
+- [x] **Function M2-F3 — `findGrindRail(layout, position, forward) -> RailHit | null`**
+  - [x] RED: `findGrindRail_findsNearestAlignedRail` and `findGrindRail_rejectsOutsideTolerance` failed before implementation.
+  - [x] Implement nearest eligible rail lookup.
+  - [x] GREEN: focused tests and full unit suite pass.
+  - [x] Helper `projectOntoRail`: test endpoints, midpoint, and out-of-range positions.
+- [x] **Function M2-F4 — `createCityScene(THREE, layout) -> THREE.Group`**
+  - [x] RED: `cityWorld_rendersCurvedStreetsRampsAndRails` failed before implementation.
+  - [x] Implement the graybox scene builder; final art is not a dependency for gameplay.
+  - [x] GREEN: Playwright test and visual review pass; captured `test-results/city-world-mounted.png`.
+  - [x] Helper `buildStreetMesh`: test mesh placement follows route surface data.
+  - [x] Helper `buildBuildingMesh`: test building bases sit on the curved city surface.
+  - [x] Helper `buildRampMesh`: test ramp mesh and rideable surface align.
+  - [x] Helper `buildRailMesh`: test rail mesh matches its grind segment.
+- [x] **Game-page integration:** mount the deterministic city in `startSkateGame`, use a capped low-power renderer, support orbit controls and resize, and dispose scene resources idempotently; mounted render/cleanup test passed red→green.
+- [x] Run `npm run test:unit -- tests/unit/city-layout.test.js` and `npm run test:e2e -- tests/e2e/city-world.spec.js`; record RED/GREEN for each function.
+- [ ] Manual ride check (deferred to Task 9): this milestone has no skater/play loop or movement controls yet; verify route traversal during the integrated playtest.
+- [x] Commit: `feat: add spherical city skate routes`.
 
 ## Task 4 — Milestone 3: Low-Poly TVHead Avatar and Runtime Customization
 
