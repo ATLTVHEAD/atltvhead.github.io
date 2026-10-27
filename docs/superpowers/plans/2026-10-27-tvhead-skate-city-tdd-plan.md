@@ -100,7 +100,7 @@ Modify `package.json`, `index.html`, and `portfolio.html` only for test/dev scri
 - [x] **Feature M0-F2 — game shell:** Wrote `skate-shell.spec.js`; shell/control/boot tests failed RED, then added `skate.html`, game-only CSS, and boot wiring and the tests passed GREEN.
 - [x] **Feature M0-F3 — portfolio regression:** Added browser checks for the existing 3D viewer and portfolio content; they pass without changing either page's existing behavior.
 - [x] Run `npm run test:unit`, `npm run test:workers`, and `npm run test:e2e`; all configured suites pass.
-- [ ] Commit the test harness and isolated page: `feat: add isolated skate game shell`.
+- [x] Commit the test harness and isolated page: `feat: add isolated skate game shell` (`cfd34e7`).
 
 ## Task 2 — Milestone 1: Spherical Movement Core
 
@@ -108,32 +108,32 @@ Modify `package.json`, `index.html`, and `portfolio.html` only for test/dev scri
 
 **Files:** Create `js/game/core/planet-math.js`, `js/game/core/skater-simulation.js`, `js/game/input/actions.js`, and `tests/unit/planet-math.test.js`, `tests/unit/skater-simulation.test.js`.
 
-**Interfaces:** `Vec3` is a finite `[x, y, z]` tuple. `GameInput` is `{ steerX, steerY, accelerate, brake, jumpPressed, trickId, grind, tagPressed, emoteId }`, where axes are clamped to `[-1, 1]`. `SkaterState` is `{ position, forward, speed, airborne, verticalSpeed }`.
+**Interfaces:** `Vec3` is a finite `[x, y, z]` tuple. `GameInput` is `{ steerX, steerY, accelerate, brake, jumpPressed, trickId, grind, tagPressed, emoteId }`, where axes are clamped to `[-1, 1]`. `SkaterState` is `{ position, forward, speed, airborne, verticalSpeed, groundRadius? }`; simulation sets `groundRadius` while airborne so radial jump height can be integrated and landing remains tied to the same sphere.
 
-- [ ] **Function M1-F1 — `projectToTangent(direction, normal) -> Vec3`**
-  - [ ] RED: `projectToTangent_removesNormalComponent` and `projectToTangent_parallelInputReturnsZero` fail before implementation.
-  - [ ] Implement the smallest tangent projection.
-  - [ ] GREEN: focused tests and full unit suite pass.
-  - [ ] Helper `dot3`: test correct dot product and finite inputs through the owning test file.
-  - [ ] Helper `normalize3`: test unit output and zero/non-finite fallback through the owning test file.
-- [ ] **Function M1-F2 — `makeSurfaceFrame(normal, heading) -> { up, forward, right }`**
-  - [ ] RED: `makeSurfaceFrame_returnsOrthonormalBasis` and `makeSurfaceFrame_handlesPoleAndSeam` fail before implementation; `up` equals the normalized input normal.
-  - [ ] Implement stable surface basis construction with a fallback tangent.
-  - [ ] GREEN: focused tests and full unit suite pass.
-  - [ ] Helper `cross3`: test right-handed output and zero result for parallel inputs.
-  - [ ] Helper `chooseFallbackTangent`: test stable output for parallel and near-zero headings.
-- [ ] **Function M1-F3 — `advanceAlongSphere(position, forward, distance, radius) -> Vec3`**
-  - [ ] RED: `advanceAlongSphere_preservesRadiusAcrossLargeTurn` and `advanceAlongSphere_zeroDistanceIsNoop` fail before implementation.
-  - [ ] Implement the smallest spherical step.
-  - [ ] GREEN: focused tests and full unit suite pass.
-  - [ ] Helper `rotateAroundAxis`: test zero, normalized, and non-unit axes.
-- [ ] **Function M1-F4 — `stepSkater(state, input, deltaSeconds) -> SkaterState`**
-  - [ ] RED: `stepSkater_neutralInputKeepsState`, `stepSkater_clampsSpeedAndPreservesGroundRadius`, and `stepSkater_jumpTransitionsToAirborne` fail before implementation.
-  - [ ] Implement deterministic movement using the earlier sphere functions.
-  - [ ] GREEN: focused tests and full unit suite pass.
-  - [ ] Helper `clampInputAxes`: test both bounds and non-finite values.
-- [ ] Run `npm run test:unit -- tests/unit/planet-math.test.js` and `npm run test:unit -- tests/unit/skater-simulation.test.js`; record RED before implementation and GREEN after implementation.
-- [ ] Commit: `feat: add spherical skater simulation`.
+- [x] **Function M1-F1 — `projectToTangent(direction, normal) -> Vec3`**
+  - [x] RED: `projectToTangent_removesNormalComponent` and `projectToTangent_parallelInputReturnsZero` failed before implementation.
+  - [x] Implement the smallest tangent projection.
+  - [x] GREEN: focused tests and full unit suite pass.
+  - [x] Helper `dot3`: test correct dot product and finite inputs through the owning test file.
+  - [x] Helper `normalize3`: test unit output and zero/non-finite fallback through the owning test file.
+- [x] **Function M1-F2 — `makeSurfaceFrame(normal, heading) -> { up, forward, right }`**
+  - [x] RED: `makeSurfaceFrame_returnsOrthonormalBasis` and `makeSurfaceFrame_handlesPoleAndSeam` failed before implementation; `up` equals the normalized input normal.
+  - [x] Implement stable surface basis construction with a fallback tangent.
+  - [x] GREEN: focused tests and full unit suite pass.
+  - [x] Helper `cross3`: test right-handed output and zero result for parallel inputs.
+  - [x] Helper `chooseFallbackTangent`: test stable output for parallel and near-zero headings.
+- [x] **Function M1-F3 — `advanceAlongSphere(position, forward, distance, radius) -> Vec3`**
+  - [x] RED: `advanceAlongSphere_preservesRadiusAcrossLargeTurn` and `advanceAlongSphere_zeroDistanceIsNoop` failed before implementation.
+  - [x] Implement the smallest spherical step.
+  - [x] GREEN: focused tests and full unit suite pass.
+  - [x] Helper `rotateAroundAxis`: test zero, normalized, and non-unit axes.
+- [x] **Function M1-F4 — `stepSkater(state, input, deltaSeconds) -> SkaterState`**
+  - [x] RED: `stepSkater_neutralInputKeepsState`, `stepSkater_clampsSpeedAndPreservesGroundRadius`, and `stepSkater_jumpTransitionsToAirborne` failed before implementation.
+  - [x] Implement deterministic movement using the earlier sphere functions.
+  - [x] GREEN: focused tests and full unit suite pass.
+  - [x] Helper `clampInputAxes`: test both bounds and non-finite values.
+- [x] Run `npm run test:unit -- tests/unit/planet-math.test.js` and `npm run test:unit -- tests/unit/skater-simulation.test.js`; record RED before implementation and GREEN after implementation.
+- [x] Commit: `feat: add spherical skater simulation`.
 
 ## Task 3 — Milestone 2: Low-Poly Spherical City Blockout
 
