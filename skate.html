@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Skate a tiny spherical city as ATLTVHEAD.">
+    <title>TVHead Skate City | ATLTVHEAD</title>
+    <link rel="stylesheet" href="css/skate.css">
+</head>
+<body class="skate-page">
+    <header class="skate-topbar">
+        <a class="skate-brand" href="index.html">ATLTVHEAD</a>
+        <nav aria-label="Main navigation">
+            <a href="index.html">3D Viewer</a>
+            <a href="portfolio.html">Portfolio</a>
+            <a href="skate.html" aria-current="page">Skate City</a>
+        </nav>
+    </header>
+
+    <main id="game-root" class="skate-root" data-game-state="loading">
+        <canvas id="game-canvas" aria-label="Spherical skate city game world"></canvas>
+
+        <section class="skate-card" aria-labelledby="game-title">
+            <p class="skate-eyebrow">A tiny planet. Your whole playground.</p>
+            <h1 id="game-title">TVHead Skate City</h1>
+            <p class="skate-intro">Drop in, find your line, and keep the city moving.</p>
+
+            <form id="customization-form" class="skate-customization">
+                <label for="skater-color">Skater color</label>
+                <input id="skater-color" name="color" type="color" value="#ff006e">
+
+                <label class="accessory-option" for="accessory-cap">
+                    <input id="accessory-cap" name="accessories" type="checkbox" value="cap">
+                    <span>Cap accessory</span>
+                </label>
+
+                <button id="join-city" type="button">Join City</button>
+            </form>
+
+            <section class="skate-help" aria-label="Game controls">
+                <h2>Controls</h2>
+                <ul>
+                    <li><kbd>WASD</kbd> steer and accelerate</li>
+                    <li><kbd>Space</kbd> jump</li>
+                    <li><kbd>J / K</kbd> tricks</li>
+                    <li><kbd>F</kbd> tag · <kbd>E</kbd> emote</li>
+                    <li>Drag to orbit · scroll to zoom</li>
+                </ul>
+            </section>
+
+            <p id="connection-state" class="skate-status" aria-live="polite">Offline preview</p>
+        </section>
+    </main>
+
+    <script src="lib/three.min.js"></script>
+    <script src="lib/OrbitControls.js"></script>
+    <script type="module" src="js/game/main.js"></script>
+</body>
+</html>

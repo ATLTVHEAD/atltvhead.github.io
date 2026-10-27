@@ -1,0 +1,234 @@
+:root {
+    color-scheme: dark;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #f8f5ff;
+    background: #10101b;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body.skate-page {
+    min-width: 320px;
+    min-height: 100vh;
+    margin: 0;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse at 76% 55%, rgba(255, 0, 110, 0.14), transparent 38%),
+        radial-gradient(ellipse at 55% 72%, rgba(0, 212, 255, 0.15), transparent 42%),
+        #10101b;
+}
+
+.skate-topbar {
+    position: absolute;
+    z-index: 2;
+    inset: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem clamp(1rem, 4vw, 3rem);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(16, 16, 27, 0.78);
+    backdrop-filter: blur(12px);
+}
+
+.skate-topbar a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.skate-topbar nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: clamp(0.6rem, 2vw, 1.5rem);
+}
+
+.skate-topbar nav a {
+    color: #c8c4d7;
+    font-size: 0.9rem;
+}
+
+.skate-topbar nav a:hover,
+.skate-topbar nav a[aria-current='page'] {
+    color: #53edff;
+}
+
+.skate-brand {
+    color: #53edff !important;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+}
+
+.skate-root {
+    position: relative;
+    min-height: 100vh;
+    padding: 7rem clamp(1rem, 6vw, 5rem) 2rem;
+}
+
+#game-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(circle at 68% 57%, rgba(23, 180, 197, 0.24), transparent 25%),
+        radial-gradient(circle at 71% 61%, #22223a 0, #19192b 22%, transparent 22.2%);
+}
+
+.skate-card {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 390px);
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid rgba(143, 240, 255, 0.22);
+    border-radius: 1rem;
+    background: rgba(18, 18, 31, 0.9);
+    box-shadow: 0 1.5rem 5rem rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(16px);
+}
+
+.skate-eyebrow {
+    margin: 0 0 0.5rem;
+    color: #53edff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.skate-card h1 {
+    margin: 0;
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    line-height: 1.05;
+}
+
+.skate-intro {
+    margin: 0.75rem 0 1.5rem;
+    color: #c8c4d7;
+}
+
+.skate-customization {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.85rem 1rem;
+}
+
+.skate-customization > label:first-child {
+    color: #e7e3f2;
+    font-size: 0.9rem;
+}
+
+#skater-color {
+    width: 3rem;
+    height: 2rem;
+    padding: 0.15rem;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 0.5rem;
+    background: transparent;
+    cursor: pointer;
+}
+
+.accessory-option {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: #c8c4d7;
+    font-size: 0.9rem;
+}
+
+.accessory-option input {
+    accent-color: #ff438e;
+}
+
+#join-city {
+    grid-column: 1 / -1;
+    min-height: 2.8rem;
+    border: 0;
+    border-radius: 0.65rem;
+    background: linear-gradient(105deg, #00cbe8, #ff3987);
+    color: #10101b;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+#join-city:hover {
+    filter: brightness(1.12);
+}
+
+.skate-help {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.skate-help h2 {
+    margin: 0 0 0.5rem;
+    color: #53edff;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.skate-help ul {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    color: #c8c4d7;
+    font-size: 0.85rem;
+    list-style: none;
+}
+
+kbd {
+    padding: 0.12rem 0.35rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.3rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font: inherit;
+    font-size: 0.78rem;
+}
+
+.skate-status {
+    margin: 1rem 0 0;
+    color: #a8a4b8;
+    font-size: 0.78rem;
+}
+
+@media (max-width: 600px) {
+    body.skate-page {
+        overflow: auto;
+    }
+
+    .skate-topbar {
+        align-items: flex-start;
+        padding: 0.85rem 1rem;
+    }
+
+    .skate-topbar nav {
+        justify-content: flex-end;
+        gap: 0.4rem 0.75rem;
+    }
+
+    .skate-topbar nav a {
+        font-size: 0.78rem;
+    }
+
+    .skate-root {
+        display: flex;
+        align-items: center;
+        min-height: 100svh;
+        padding: 6.5rem 1rem 1.5rem;
+    }
+
+    .skate-card {
+        margin: auto 0;
+    }
+}

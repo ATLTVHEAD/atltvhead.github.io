@@ -2,12 +2,18 @@
   "name": "atltvhead-portfolio",
   "version": "1.0.0",
   "description": "Interactive 3D Portfolio Website using Three.js",
+  "type": "module",
   "main": "index.html",
   "scripts": {
     "dev": "npx http-server -p 8000 -c-1",
     "serve": "npx http-server -p 8000 -c-1",
     "build": "echo 'Static site - no build required'",
-    "deploy": "echo 'Deployment handled by GitHub Pages'"
+    "deploy": "echo 'Deployment handled by GitHub Pages'",
+    "test:unit": "vitest run --config vitest.unit.config.js --passWithNoTests",
+    "test:workers": "vitest run --config vitest.workers.config.js --passWithNoTests",
+    "test:e2e": "playwright test --config playwright.config.js",
+    "test": "npm run test:unit && npm run test:workers && npm run test:e2e",
+    "dev:room": "wrangler dev --config workers/skate-room/wrangler.jsonc --port 8787"
   },
   "keywords": [
     "portfolio",
@@ -24,5 +30,12 @@
   },
   "dependencies": {
     "three": "^0.137.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.9",
+    "@playwright/test": "^1.64.1",
+    "http-server": "^14.1.1",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.154.0"
   }
 }

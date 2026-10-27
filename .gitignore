@@ -40,6 +40,10 @@ Thumbs.db
 dist/
 build/
 
+# Playwright output
+playwright-report/
+test-results/
+
 # Temporary files
 tmp/
 temp/
