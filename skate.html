@@ -18,7 +18,7 @@
     </header>
 
     <main id="game-root" class="skate-root" data-game-state="loading">
-        <canvas id="game-canvas" aria-label="Spherical skate city game world"></canvas>
+        <canvas id="game-canvas" tabindex="0" aria-label="Spherical skate city game world"></canvas>
 
         <section class="skate-card" aria-labelledby="game-title">
             <p class="skate-eyebrow">A tiny planet. Your whole playground.</p>
@@ -37,11 +37,14 @@
                 <button id="join-city" type="button">Join City</button>
             </form>
 
+            <button id="leave-city" type="button" hidden>Leave City</button>
+
             <section class="skate-help" aria-label="Game controls">
                 <h2>Controls</h2>
                 <ul>
-                    <li><kbd>WASD</kbd> steer and accelerate</li>
+                    <li><kbd>W</kbd> accelerate · <kbd>A</kbd>/<kbd>D</kbd> steer · <kbd>S</kbd> brake</li>
                     <li><kbd>Space</kbd> jump</li>
+                    <li><kbd>Shift</kbd> grind</li>
                     <li><kbd>J / K</kbd> tricks</li>
                     <li><kbd>F</kbd> tag · <kbd>E</kbd> emote</li>
                     <li>Drag to orbit · scroll to zoom</li>
@@ -49,6 +52,11 @@
             </section>
 
             <p id="connection-state" class="skate-status" aria-live="polite">Offline preview</p>
+        </section>
+
+        <section id="game-error" class="game-error" role="alert" hidden>
+            <p id="game-error-message">The 3D game could not start.</p>
+            <button id="retry-game" type="button">Retry</button>
         </section>
     </main>
 

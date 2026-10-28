@@ -9,7 +9,7 @@
     "serve": "npx http-server -p 8000 -c-1",
     "build": "echo 'Static site - no build required'",
     "deploy": "echo 'Deployment handled by GitHub Pages'",
-    "test:unit": "vitest run --config vitest.unit.config.js --passWithNoTests",
+    "test:unit": "vitest run --config vitest.unit.config.js",
     "test:workers": "vitest run --config vitest.workers.config.js --passWithNoTests",
     "test:e2e": "playwright test --config playwright.config.js",
     "test": "npm run test:unit && npm run test:workers && npm run test:e2e",

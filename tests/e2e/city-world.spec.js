@@ -23,7 +23,7 @@ test('cityWorld_rendersCurvedStreetsRampsAndRails', async ({ page }) => {
     const buildingNormal = new window.THREE.Vector3(...building.userData.surfaceNormal).normalize();
     const buildingPosition = new window.THREE.Vector3(...building.userData.basePosition).normalize();
 
-    const canvas = document.querySelector('#game-canvas');
+    const canvas = document.createElement('canvas');
     const renderer = new window.THREE.WebGLRenderer({ canvas, antialias: false });
     renderer.setSize(640, 480, false);
     const scene = new window.THREE.Scene();

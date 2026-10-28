@@ -13,7 +13,7 @@ test('skateShell_exposesRuntimeCustomizationAndHelp', async ({ page }) => {
 
   await expect(page.getByLabel('Skater color')).toHaveAttribute('type', 'color');
   await expect(page.getByLabel('Cap accessory')).toBeVisible();
-  await expect(page.getByText(/WASD.*steer/i)).toBeVisible();
+  await expect(page.getByText(/W.*accelerate.*A\/D.*steer.*S.*brake/i)).toBeVisible();
   await expect(page.getByText(/Space.*jump/i)).toBeVisible();
 });
 
