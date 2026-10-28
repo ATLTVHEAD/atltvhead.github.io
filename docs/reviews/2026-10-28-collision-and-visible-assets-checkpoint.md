@@ -33,6 +33,8 @@ Developer-inspected preview and chase captures: `artifacts/skate-progress/visibl
 
 ## Human review gate
 
+**User follow-up:** The imported buildings in the current checkpoint look too small relative to the character. The user approved treating the character as a 5′10″ adult reference and scaling the buildings up, while keeping character/planet/camera scale and maintaining collision and route clearance. This is now tracked in Task 4 of the implementation plan; the current scale of 3 and the captures below are **not visually approved**. Actual door/storey geometry—not just overall asset bounds—must be checked in the follow-up.
+
 Run `npm run dev`, then open `http://localhost:8000/skate.html` and reload to pick up the current modules. Follow `tests/manual/device-matrix.md`, especially the new wall-fall/escape and visible-building clearance checks. Steam Controller troubleshooting is not required. The exact screenshot encounter still needs human confirmation; deterministic regressions establish the corrected failure mode, not a replay of the user's original inputs.
 
 Stop here for the user's playtest before new mechanics. Branch/landmark/tag-target portions of Task 4, automatic traversal, rigging and final comic art remain open.
