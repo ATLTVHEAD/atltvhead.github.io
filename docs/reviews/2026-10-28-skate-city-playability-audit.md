@@ -2,7 +2,7 @@
 
 Reviewed checkout: `feat/tvhead-skate-city`, HEAD `0521d94`.
 
-Status: investigation and proposals, **not an implemented correction or an approved new design**. The user reports only D-pad response on their controller, no stick/jump response, missing automatic jump/grind/tagging, a rigid character, missing comic-book styling, and absent in-play controls. Treat this as failed user acceptance, not a passing device gate.
+Status: investigation and design handoff, **not an implemented correction**. The resulting written design has been approved; implementation-plan review/execution choice is pending. The user reports only D-pad response on their controller, no stick/jump response, missing automatic jump/grind/tagging, a rigid character, missing comic-book styling, and absent in-play controls. Treat this as failed user acceptance, not a passing device gate.
 
 ## Intent and constraints
 
@@ -113,7 +113,7 @@ Original graffiti marks, signs and halftone textures can be generated locally. A
 - Latest user decision supersedes that background-only recommendation: **use the downloaded Kenney pack for the city**, with comic-book rendering; author a **new lower-poly TVHead using the existing model as Blender reference**. SVG is a preferred editable option for original graffiti, not a hard runtime-format constraint; another suitable custom-art file type is permitted.
 - Verified downloaded pack: `C:\Users\User\Downloads\kenney_city-kit-industrial_2.0`, CC0 `License.txt`; 37 GLBs totaling 3,139,644 bytes before textures, with required `Models/GLB format/Textures/colormap.png` present. Preview was reviewed. No production asset files have been copied yet.
 - Read-only Blender inspection imported the OBJ as three meshes. The dense main mesh has 19,862 vertices/39,728 faces; a thin base is separate. The referenced `atltvhead.mtl` is missing, so original materials are unavailable, but geometry imports. Originals were not modified and no `.blend` or GLB was generated.
-- Written design: `docs/superpowers/specs/2026-10-28-skate-city-playability-and-comic-art-design.md` — awaiting user review before implementation planning. Automatic launch and wall-tagging rules are explicit review proposals, not previously implemented features.
+- Written design: `docs/superpowers/specs/2026-10-28-skate-city-playability-and-comic-art-design.md` — approved by the user; implementation plan is now written and awaiting review/execution choice. Automatic launch and wall-tagging rules are approved design, not previously implemented features.
 
 ## Proposed delivery sequence — awaiting design agreement
 
@@ -135,6 +135,7 @@ Written-design review includes proposed automatic ramp/ledge launch rules and de
 - [x] Record findings, evidence and alternative asset approaches.
 - [x] Obtain controller/device details and SVG/Blender direction.
 - [x] Record selected city/model/graffiti direction and proposed mechanics in a written design.
-- [ ] Obtain user review/approval of `docs/superpowers/specs/2026-10-28-skate-city-playability-and-comic-art-design.md`.
-- [ ] Write an implementation plan after spec approval; choose execution method.
+- [x] Obtain user review/approval of `docs/superpowers/specs/2026-10-28-skate-city-playability-and-comic-art-design.md` (user: "approved").
+- [x] Write the implementation plan: `docs/superpowers/plans/2026-10-28-skate-city-playability-and-comic-art-plan.md`.
+- [ ] Obtain user review of the plan and choice of execution method.
 - [ ] Implement regressions/corrections and perform automated plus physical/visual acceptance.
