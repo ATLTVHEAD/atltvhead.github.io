@@ -98,6 +98,15 @@ test('cityWorld_isMountedAndRenderedOnGamePage', async ({ page }) => {
     return {
       mounted: true,
       triangleCount: game.renderer.info.render.triangles,
+      worldDescriptor: game.world?.descriptor,
+      skaterMode: game.skaterState?.mode,
+      skaterRadius: game.skaterState?.position && Math.hypot(...game.skaterState.position),
+      avatarSkaterDistance: game.skaterState?.position
+        ? game.avatar.position.distanceTo(new window.THREE.Vector3(...game.skaterState.position))
+        : null,
+      firstStreetVertexCount: game.world?.surfaces[0].vertices.length,
+      renderedStreetVertexCount: game.city.getObjectByName(`street-${game.world?.surfaces[0].id}`)
+        ?.geometry.attributes.position.count,
       readyState: document.querySelector('#game-root').dataset.gameState,
       canvasWidth: game.renderer.domElement.width,
       canvasHeight: game.renderer.domElement.height,
@@ -113,6 +122,11 @@ test('cityWorld_isMountedAndRenderedOnGamePage', async ({ page }) => {
   expect(result.mounted).toBe(true);
   expect(result.triangleCount).toBeGreaterThan(0);
   expect(result.readyState).toBe('ready');
+  expect(result.worldDescriptor).toMatchObject({ version: 1, radius: 16, tuningVersion: 1 });
+  expect(result.skaterMode).toBe('grounded');
+  expect(result.skaterRadius).toBeGreaterThan(16);
+  expect(result.avatarSkaterDistance).toBeLessThan(1e-6);
+  expect(result.renderedStreetVertexCount).toBe(result.firstStreetVertexCount);
   expect(result.canvasWidth).toBeGreaterThan(0);
   expect(result.canvasHeight).toBeGreaterThan(0);
   expect(result.cityCenterScreenX).toBeGreaterThan(0.55);

@@ -1,20 +1,16 @@
-const DEFAULT_COLOR = '#FF006E';
+import {
+  AVATAR_ACCESSORIES,
+  isAccessoryId as isSharedAccessoryId,
+  normalizeAppearanceColor,
+} from '../shared/catalogs.js';
 
-export const AVATAR_ACCESSORIES = Object.freeze([
-  Object.freeze({ id: 'cap', label: 'Cap' }),
-]);
+export { AVATAR_ACCESSORIES };
 
 function getCachedGeometry(THREE, geometryCache, key, createGeometry) {
   if (geometryCache.has(key)) return geometryCache.get(key);
   const geometry = createGeometry(THREE);
   geometryCache.set(key, geometry);
   return geometry;
-}
-
-function normalizeAppearanceColor(color) {
-  return typeof color === 'string' && /^#[\da-f]{6}$/i.test(color)
-    ? color.toUpperCase()
-    : DEFAULT_COLOR;
 }
 
 function cloneMaterial(material, clones) {
@@ -299,7 +295,7 @@ export function createTvheadAvatar(THREE, appearance = {}, geometryCache = new M
 }
 
 export function isAccessoryId(id) {
-  return AVATAR_ACCESSORIES.some((accessory) => accessory.id === id);
+  return isSharedAccessoryId(id);
 }
 
 export function setAvatarAppearance(avatar, appearance = {}) {

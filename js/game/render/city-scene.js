@@ -1,4 +1,4 @@
-import { makeSurfaceFrame } from '../core/planet-math.js';
+import { compileCityWorld } from '../world/city-surfaces.js';
 
 function vector(THREE, value) {
   return new THREE.Vector3(value[0], value[1], value[2]);
@@ -11,32 +11,9 @@ function markFeature(object, feature, data = {}) {
 }
 
 function buildSurfaceMesh(THREE, surface, material, feature) {
-  const positions = [];
-  const indices = [];
-  const centers = surface.centerline;
-
-  for (let index = 0; index < centers.length; index += 1) {
-    const center = vector(THREE, centers[index]);
-    const normal = center.clone().normalize();
-    const previous = vector(THREE, centers[Math.max(0, index - 1)]);
-    const next = vector(THREE, centers[Math.min(centers.length - 1, index + 1)]);
-    const heading = next.sub(previous).projectOnPlane(normal).normalize();
-    const frame = makeSurfaceFrame(normal.toArray(), heading.toArray());
-    const lateral = vector(THREE, frame.right).normalize();
-    const edgeRadius = center.length() + 0.025;
-    const left = center.clone().addScaledVector(lateral, -surface.width / 2).normalize().multiplyScalar(edgeRadius);
-    const right = center.clone().addScaledVector(lateral, surface.width / 2).normalize().multiplyScalar(edgeRadius);
-
-    positions.push(...left.toArray(), ...right.toArray());
-    if (index < centers.length - 1) {
-      const first = index * 2;
-      indices.push(first, first + 1, first + 2, first + 1, first + 3, first + 2);
-    }
-  }
-
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setIndex(indices);
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(surface.vertices.flat(), 3));
+  geometry.setIndex(surface.indices);
   geometry.computeVertexNormals();
   geometry.computeBoundingSphere();
 
@@ -106,7 +83,7 @@ function buildRailMesh(THREE, rail, material) {
   return group;
 }
 
-export function createCityScene(THREE, layout) {
+export function createCityScene(THREE, layout, world = compileCityWorld(layout)) {
   if (!THREE?.Group || !layout || !Number.isFinite(layout.planetRadius)) {
     throw new Error('Three.js and a valid city layout are required.');
   }
@@ -146,7 +123,7 @@ export function createCityScene(THREE, layout) {
     roughness: 0.32,
   });
 
-  for (const surface of layout.surfaces ?? []) {
+  for (const surface of world.surfaces) {
     city.add(surface.type === 'ramp'
       ? buildRampMesh(THREE, surface, rampMaterial)
       : buildStreetMesh(THREE, surface, streetMaterial));

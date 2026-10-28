@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { clampInputAxes } from '../../js/game/input/actions.js';
-import { stepSkater } from '../../js/game/core/skater-simulation.js';
+import {
+  integrateSkaterSpeed,
+  integrateVerticalMotion,
+  stepSkater,
+  turnSkaterForward,
+} from '../../js/game/core/skater-simulation.js';
 
 const initialState = {
   position: [10, 0, 0],
@@ -72,6 +77,35 @@ describe('stepSkater', () => {
 
     expect(stepSkater(moving, neutralInput, 0)).toEqual(moving);
     expect(stepSkater(moving, neutralInput, -1)).toEqual(moving);
+  });
+});
+
+describe('shared skater integrators', () => {
+  it('integrateSkaterSpeed_appliesTheConfiguredCoastingDrag', () => {
+    expect(integrateSkaterSpeed(5, { throttle: 0, brake: 0 }, 0.5, {
+      maxSpeed: 12,
+      acceleration: 8,
+      braking: 18,
+      coastingDrag: 0.6,
+    })).toBeCloseTo(4.7);
+  });
+
+  it('turnSkaterForward_keepsHeadingOnTheRadialTangentPlane', () => {
+    const forward = turnSkaterForward([0, 0, -1], [0, 1, 0], 1, 0.1, {
+      turnRate: 2.6,
+      steeringFactor: 1,
+    });
+
+    expect(forward[0]).toBeGreaterThan(0);
+    expect(forward[1]).toBe(0);
+    expect(Math.hypot(...forward)).toBeCloseTo(1);
+  });
+
+  it('integrateVerticalMotion_returnsHeightAndSpeedForContactResolution', () => {
+    expect(integrateVerticalMotion(0.4, -4, 0.1, 14)).toEqual({
+      height: -0.07,
+      verticalSpeed: -5.4,
+    });
   });
 });
 

@@ -1,20 +1,11 @@
-import { isAccessoryId } from '../render/avatar.js';
+import {
+  DEFAULT_APPEARANCE,
+  filterAccessoryIds,
+  normalizeAppearanceColor,
+} from '../shared/catalogs.js';
 
-export const DEFAULT_APPEARANCE = Object.freeze({
-  color: '#FF006E',
-  accessoryIds: Object.freeze([]),
-});
-
-export function normalizeColor(color) {
-  return typeof color === 'string' && /^#[\da-f]{6}$/i.test(color)
-    ? color.toUpperCase()
-    : DEFAULT_APPEARANCE.color;
-}
-
-export function filterAccessoryIds(accessoryIds) {
-  if (!Array.isArray(accessoryIds)) return [];
-  return [...new Set(accessoryIds.filter(isAccessoryId))];
-}
+export { DEFAULT_APPEARANCE, filterAccessoryIds };
+export const normalizeColor = normalizeAppearanceColor;
 
 export function readCustomizationForm(form) {
   if (typeof form?.querySelector !== 'function') {
@@ -30,7 +21,7 @@ export function readCustomizationForm(form) {
     : [];
 
   return {
-    color: normalizeColor(colorInput?.value),
+    color: normalizeAppearanceColor(colorInput?.value),
     accessoryIds: filterAccessoryIds(selectedAccessories),
   };
 }

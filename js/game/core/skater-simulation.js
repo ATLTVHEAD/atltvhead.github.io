@@ -17,6 +17,37 @@ export const SKATER_PHYSICS = Object.freeze({
   maxDeltaSeconds: 0.1,
 });
 
+export function integrateSkaterSpeed(speed, input, deltaSeconds, tuning = SKATER_PHYSICS) {
+  const throttle = Number.isFinite(input?.throttle) ? Math.max(0, Math.min(1, input.throttle)) : 0;
+  const brake = Number.isFinite(input?.brake) ? Math.max(0, Math.min(1, input.brake)) : 0;
+  let nextSpeed = Number.isFinite(speed) ? Math.max(0, speed) : 0;
+  nextSpeed += throttle * tuning.acceleration * deltaSeconds;
+  nextSpeed -= brake * tuning.braking * deltaSeconds;
+  if (throttle === 0 && brake === 0) {
+    nextSpeed -= (tuning.coastingDrag ?? 0) * deltaSeconds;
+  }
+  return Math.max(0, Math.min(tuning.maxSpeed, nextSpeed));
+}
+
+export function turnSkaterForward(forward, normal, steer, deltaSeconds, tuning = SKATER_PHYSICS) {
+  const factor = typeof tuning.steeringFactor === 'function'
+    ? tuning.steeringFactor(tuning.speed ?? 0)
+    : (Number.isFinite(tuning.steeringFactor) ? tuning.steeringFactor : 1);
+  const turned = rotateAroundAxis(
+    forward,
+    normal,
+    -(Number.isFinite(steer) ? steer : 0) * tuning.turnRate * factor * deltaSeconds,
+  );
+  return normalize3(projectToTangent(turned, normal));
+}
+
+export function integrateVerticalMotion(height, verticalSpeed, deltaSeconds, gravity) {
+  return {
+    height: height + verticalSpeed * deltaSeconds - 0.5 * gravity * deltaSeconds * deltaSeconds,
+    verticalSpeed: verticalSpeed - gravity * deltaSeconds,
+  };
+}
+
 export function stepSkater(state, rawInput, deltaSeconds) {
   if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) return { ...state };
 
@@ -26,14 +57,17 @@ export function stepSkater(state, rawInput, deltaSeconds) {
   const currentRadius = Math.hypot(...position);
   const up = normalize3(position);
   const surfaceFrame = makeSurfaceFrame(up, state.forward);
-  const speedBeforeInput = Number.isFinite(state.speed) ? Math.max(0, state.speed) : 0;
-  const acceleratedSpeed = speedBeforeInput
-    + (input.accelerate ? SKATER_PHYSICS.acceleration * delta : 0)
-    - (input.brake ? SKATER_PHYSICS.braking * delta : 0);
-  const speed = Math.max(0, Math.min(SKATER_PHYSICS.maxSpeed, acceleratedSpeed));
-  const turnAngle = -input.steerX * SKATER_PHYSICS.turnRate * delta;
-  const turnedForward = rotateAroundAxis(surfaceFrame.forward, up, turnAngle);
-  const forward = normalize3(projectToTangent(turnedForward, up));
+  const speed = integrateSkaterSpeed(state.speed, {
+    throttle: input.accelerate ? 1 : 0,
+    brake: input.brake ? 1 : 0,
+  }, delta, SKATER_PHYSICS);
+  const forward = turnSkaterForward(
+    surfaceFrame.forward,
+    up,
+    input.steerX,
+    delta,
+    SKATER_PHYSICS,
+  );
   const direction = forward.every((component) => component === 0)
     ? surfaceFrame.forward
     : forward;
@@ -50,9 +84,9 @@ export function stepSkater(state, rawInput, deltaSeconds) {
   if (startsJump) verticalSpeed = SKATER_PHYSICS.jumpSpeed;
   if (airborne) {
     const height = Math.max(0, currentRadius - groundRadius);
-    const nextHeight = height + verticalSpeed * delta
-      - 0.5 * SKATER_PHYSICS.gravity * delta * delta;
-    verticalSpeed -= SKATER_PHYSICS.gravity * delta;
+    const verticalMotion = integrateVerticalMotion(height, verticalSpeed, delta, SKATER_PHYSICS.gravity);
+    const nextHeight = verticalMotion.height;
+    verticalSpeed = verticalMotion.verticalSpeed;
 
     if (nextHeight <= 0) {
       airborne = false;
