@@ -369,7 +369,7 @@ Pure rules in `core/social-rules.js` operate on explicit `RoomState` plus inject
 - [x] **F7.3 `selectActiveInput`:** RED idle gamepad noise cannot steal active keyboard/touch, device switches drop stale edges, form focus pauses gameplay actions, keyboard blur clears pointer state too. Implement most-recent intentional-device ownership (gamepad activation threshold 0.2). GREEN held axes are never summed from competing devices. Helpers: edge detection, axis dead-zone remap and ownership thresholds under owner tests.
 - [x] Per function RED→GREEN; run `npm run test:unit -- tests/unit/gamepad.test.js tests/unit/touch.test.js tests/unit/input-router.test.js`, `npm run test:e2e -- tests/e2e/input-devices.spec.js`, then `npm test`; expected all three device loops covered separately.
 - [ ] Manual day-one gates: keyboard/mouse, one physical gamepad including unplug, and one real iOS/Android phone including orientation/background/re-entry. **Pending physical checks**; do not mark complete by emulation. Record baseline frame times and usability before networking.
-- [ ] Commit: `feat: add gamepad and touch skating parity`.
+- [x] Commit: `feat: add gamepad and touch skating parity` (`df1f3fa`).
 
 ## Task 8 — Milestone 7: Real Rail Traversal and Event-Driven Trick Flow [Critical]
 
