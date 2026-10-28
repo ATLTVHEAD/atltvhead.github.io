@@ -9,6 +9,16 @@ import {
 } from '../../js/game/world/city-layout.js';
 import { cross3, normalize3 } from '../../js/game/core/planet-math.js';
 
+function polylineLength(points) {
+  return points.slice(1).reduce((length, point, index) => (
+    length + Math.hypot(...point.map((component, axis) => component - points[index][axis]))
+  ), 0);
+}
+
+function distanceBetween(first, second) {
+  return Math.hypot(...first.map((component, axis) => component - second[axis]));
+}
+
 describe('createCityLayout', () => {
   it('createCityLayout_isDeterministic', () => {
     expect(createCityLayout({ radius: 16, seed: 42 }))
@@ -32,6 +42,36 @@ describe('createCityLayout', () => {
     expect(layout.surfaces.some((surface) => surface.type === 'ramp')).toBe(true);
     expect(layout.rails.length).toBeGreaterThan(0);
     expect(layout.buildings.length).toBeGreaterThan(0);
+  });
+
+  it('cityLayout_defaultRadiusExpandsThePlanetAndLengthensRails', () => {
+    const previousScale = createCityLayout({ radius: 16, seed: 2026 });
+    const defaultScale = createCityLayout({ seed: 2026 });
+
+    expect(defaultScale.radius).toBe(32);
+    expect(polylineLength(defaultScale.rails[0].points))
+      .toBeGreaterThan(polylineLength(previousScale.rails[0].points));
+  });
+
+  it('cityLayout_widensStreetSurfacesWithoutChangingRampWidth', () => {
+    const layout = createCityLayout({ radius: 32, seed: 2026 });
+    const street = layout.surfaces.find((surface) => surface.type === 'street');
+    const ramp = layout.surfaces.find((surface) => surface.type === 'ramp');
+
+    expect(street.width).toBe(6.4);
+    expect(ramp.width).toBe(2.8);
+  });
+
+  it('cityLayout_spacesBuildingsFartherApartWithoutScalingThem', () => {
+    const previousScale = createCityLayout({ radius: 16, seed: 2026 });
+    const expandedScale = createCityLayout({ radius: 32, seed: 2026 });
+    const expandedGap = distanceBetween(
+      expandedScale.buildings[0].position,
+      expandedScale.buildings[1].position,
+    );
+
+    expect(expandedGap).toBeGreaterThan(10.5);
+    expect(expandedScale.buildings[0].size).toEqual(previousScale.buildings[0].size);
   });
 });
 

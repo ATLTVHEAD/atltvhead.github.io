@@ -29,6 +29,7 @@ export const CITY_SKATER_TUNING = Object.freeze({
   jumpBufferMs: 120,
   bailDurationMs: 500,
   bodyRadius: 0.25,
+  collisionResponse: 'stop',
 });
 
 const SKATER_MODES = new Set(['grounded', 'airborne', 'grinding', 'bailed']);
@@ -246,11 +247,13 @@ export function stepSkaterOnCity(state, rawInput, deltaSeconds, world, tuningOve
   const collision = sweepSkater(world, nextState.position, moved, tuning.bodyRadius);
   if (collision.blocked) {
     nextState.position = collision.position;
-    nextState.mode = 'bailed';
+    if (tuning.collisionResponse === 'bail') {
+      nextState.mode = 'bailed';
+      nextState.bailRemainingMs = tuning.bailDurationMs;
+      events.push(eventRecord(nextState, 'bailed', events.length, { hitId: collision.hitId }));
+    }
     nextState.speed = 0;
     nextState.verticalSpeed = 0;
-    nextState.bailRemainingMs = tuning.bailDurationMs;
-    events.push(eventRecord(nextState, 'bailed', events.length, { hitId: collision.hitId }));
     return { state: nextState, events };
   }
 

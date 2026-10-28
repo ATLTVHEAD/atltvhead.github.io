@@ -39,7 +39,7 @@ describe('shared catalogs and contracts', () => {
     expect(WORLD_DESCRIPTOR).toEqual({
       version: 1,
       seed: 2026,
-      radius: 16,
+      radius: 32,
       tuningVersion: 1,
     });
     expect(Object.isFrozen(WORLD_DESCRIPTOR)).toBe(true);

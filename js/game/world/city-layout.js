@@ -5,10 +5,14 @@ import {
   normalize3,
   projectToTangent,
 } from '../core/planet-math.js';
+import { WORLD_DESCRIPTOR } from '../shared/world-config.js';
 
-const DEFAULT_RADIUS = 16;
+const DEFAULT_RADIUS = WORLD_DESCRIPTOR.radius;
 const LOOP_NODE_COUNT = 12;
 const PATH_SAMPLE_COUNT = 12;
+const STREET_WIDTH = 6.4;
+const RAMP_WIDTH = 2.8;
+const BUILDING_STREET_CLEARANCE = 2.1;
 
 function seedToNumber(seed) {
   if (Number.isFinite(seed)) return seed >>> 0;
@@ -68,7 +72,7 @@ function makeArc(start, end, baseRadius, ramp = false) {
   return points;
 }
 
-function createBuildings(nodes, radius, random) {
+function createBuildings(nodes, radius, random, streetWidth) {
   const buildings = [];
   const buildingRadius = radius + 0.26;
 
@@ -82,7 +86,7 @@ function createBuildings(nodes, radius, random) {
       const basePosition = advanceAlongSphere(
         node.position,
         frame.right,
-        side * (3.7 + random() * 0.45),
+        side * (streetWidth / 2 + BUILDING_STREET_CLEARANCE + random() * 0.45),
         buildingRadius,
       );
       buildings.push({
@@ -338,7 +342,7 @@ export function createCityLayout({ radius = DEFAULT_RADIUS, seed = 1 } = {}) {
     routeEdgeId: edge.id,
     routeKind: edge.kind,
     type: index === 3 ? 'ramp' : 'street',
-    width: index === 3 ? 2.8 : 3.2,
+    width: index === 3 ? RAMP_WIDTH : STREET_WIDTH,
     centerline: makeArc(
       nodes[index].position,
       nodes[(index + 1) % nodes.length].position,
@@ -348,7 +352,7 @@ export function createCityLayout({ radius = DEFAULT_RADIUS, seed = 1 } = {}) {
   }));
 
   const routeGraph = { nodes, edges };
-  const buildings = createBuildings(nodes, planetRadius, random);
+  const buildings = createBuildings(nodes, planetRadius, random, STREET_WIDTH);
   const rails = [
     createRail(surfaces[7], 'rail-0'),
     createRail(surfaces[10], 'rail-1'),

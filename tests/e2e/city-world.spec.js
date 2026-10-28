@@ -139,9 +139,9 @@ test('cityWorld_isMountedAndRenderedOnGamePage', async ({ page }) => {
   expect(result.mounted).toBe(true);
   expect(result.triangleCount).toBeGreaterThan(0);
   expect(result.readyState).toBe('ready');
-  expect(result.worldDescriptor).toMatchObject({ version: 1, radius: 16, tuningVersion: 1 });
+  expect(result.worldDescriptor).toMatchObject({ version: 1, radius: 32, tuningVersion: 1 });
   expect(result.skaterMode).toBe('grounded');
-  expect(result.skaterRadius).toBeGreaterThan(16);
+  expect(result.skaterRadius).toBeGreaterThan(32);
   expect(result.avatarUpAlignment).toBeGreaterThan(0.999);
   expect(result.avatarSupportGap).toBeGreaterThan(-0.001);
   expect(result.avatarSupportGap).toBeLessThan(0.01);

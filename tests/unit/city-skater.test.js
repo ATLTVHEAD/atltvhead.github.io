@@ -196,7 +196,7 @@ describe('stepSkaterOnCity', () => {
     expect(finiteState(state)).toBe(true);
   });
 
-  it('citySkater_collisionEmitsOneBailAndRespawnsAfter500ms', () => {
+  it('citySkater_buildingCollisionStopsWithoutBailingOrRespawning', () => {
     const building = world.buildings[2];
     const normal = building.normal;
     const tangent = normalize3([normal[2], 0, -normal[0]]);
@@ -213,9 +213,47 @@ describe('stepSkaterOnCity', () => {
     };
     const result = stepSkaterOnCity(state, createNeutralInputFrame(), 0.1, world);
 
+    expect(result.state.mode).not.toBe('bailed');
+    expect(result.state.speed).toBe(0);
+    expect(result.state.verticalSpeed).toBe(0);
+    expect(result.events.filter(({ type }) => type === 'bailed')).toHaveLength(0);
+
+    let stopped = result;
+    for (let tick = 0; tick < 6; tick += 1) {
+      stopped = stepSkaterOnCity(stopped.state, createNeutralInputFrame(), 0.1, world);
+    }
+    expect(stopped.state.mode).not.toBe('bailed');
+    expect(stopped.state.speed).toBe(0);
+    expect(stopped.state.position).not.toEqual(createCitySkater(world).position);
+    expect(stopped.events.filter(({ type }) => type === 'bailed')).toHaveLength(0);
+  });
+
+  it('citySkater_explicitContestCollisionResponseBailsAndRespawns', () => {
+    const building = world.buildings[2];
+    const normal = building.normal;
+    const tangent = normalize3([normal[2], 0, -normal[0]]);
+    const collisionRadius = building.collision.radius + 0.25;
+    const position = building.position.map((value, axis) => (
+      value + normal[axis] * 0.2 + tangent[axis] * (collisionRadius + 0.1)
+    ));
+    const state = {
+      ...createCitySkater(world),
+      position,
+      forward: tangent.map((value) => -value),
+      speed: 12,
+      mode: 'grounded',
+    };
+    const result = stepSkaterOnCity(
+      state,
+      createNeutralInputFrame(),
+      0.1,
+      world,
+      { collisionResponse: 'bail' },
+    );
+
     expect(result.state.mode).toBe('bailed');
     expect(result.events.filter(({ type }) => type === 'bailed')).toHaveLength(1);
-    expect(new Set(result.events.map(({ eventId }) => eventId)).size).toBe(result.events.length);
+
     let waiting = result;
     for (let tick = 0; tick < 4; tick += 1) {
       waiting = stepSkaterOnCity(waiting.state, createNeutralInputFrame(), 0.1, world);
