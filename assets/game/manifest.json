@@ -1,0 +1,284 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "building-a",
+      "url": "assets/game/kenney-industrial/building-a.glb",
+      "sha256": "0e6ef8eb1e1bdbb9d06b5496b5daf3066e00eaf74b3fcd61b74072116a1c86cf",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -1.0410665273666382,
+          0,
+          -0.6209999918937683
+        ],
+        "max": [
+          1.0425217151641846,
+          1.4700000286102295,
+          0.6210000514984131
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "building"
+    },
+    {
+      "id": "building-b",
+      "url": "assets/game/kenney-industrial/building-b.glb",
+      "sha256": "2ae65bd9166449f0bef438fbefb75d57451cb15c16659d7f22a7d895296a46af",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -1.041066288948059,
+          -4.242983379770251e-16,
+          -0.6389999389648438
+        ],
+        "max": [
+          1.0425217151641846,
+          1.4700000286102295,
+          0.6230000853538513
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "building"
+    },
+    {
+      "id": "building-c",
+      "url": "assets/game/kenney-industrial/building-c.glb",
+      "sha256": "94eb05acef8d8e4c1d817eb12e1c2a1287ffed625879170663a8c4f48786b465",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -0.841793954372406,
+          -2.275713043234525e-15,
+          -0.9110000133514404
+        ],
+        "max": [
+          1.034140944480896,
+          1.25,
+          1.197021245956421
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "building"
+    },
+    {
+      "id": "building-d",
+      "url": "assets/game/kenney-industrial/building-d.glb",
+      "sha256": "72b9e9e29986df0778ffa7c56e2f92fcfadfaa0f89bf167603877db4f38a789e",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -0.44179388880729675,
+          -4.51194631754889e-17,
+          -0.8000000715255737
+        ],
+        "max": [
+          0.4417939782142639,
+          1.4145522117614746,
+          0.6200001239776611
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "building"
+    },
+    {
+      "id": "building-e",
+      "url": "assets/game/kenney-industrial/building-e.glb",
+      "sha256": "d61fed5e9502af9c698367ab69d5bc50b673375929e51c22af247dfb1db6cd16",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -0.8417938947677612,
+          0,
+          -0.3959999978542328
+        ],
+        "max": [
+          0.8417940139770508,
+          1.649999976158142,
+          0.8940002918243408
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "building"
+    },
+    {
+      "id": "building-f",
+      "url": "assets/game/kenney-industrial/building-f.glb",
+      "sha256": "05a91ab02f424ca4f4819c1749e014bc4404cdf2a75242190c066bb24b59cde7",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -1.3482062816619873,
+          -3.609556789341316e-16,
+          -0.38599997758865356
+        ],
+        "max": [
+          0.44179394841194153,
+          1.9249999523162842,
+          0.8940000534057617
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "building"
+    },
+    {
+      "id": "building-g",
+      "url": "assets/game/kenney-industrial/building-g.glb",
+      "sha256": "d09d0d53e85989870f39087435f3c8fc788fe68e87589439fa6bf227c2e4a611",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -0.839069128036499,
+          -5.551042736584577e-9,
+          -0.641793966293335
+        ],
+        "max": [
+          0.8390690684318542,
+          1.28000009059906,
+          0.6417942047119141
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "building"
+    },
+    {
+      "id": "building-h",
+      "url": "assets/game/kenney-industrial/building-h.glb",
+      "sha256": "5a6a6c6824467972ba00b5a3c3cbb19da6e96673bc4e42daf1f09cfd4d2ed0e1",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -1.2417939901351929,
+          -4.113470665706529e-15,
+          -0.3760000467300415
+        ],
+        "max": [
+          0.07993169128894806,
+          0.7335410118103027,
+          0.9340000152587891
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "building"
+    },
+    {
+      "id": "shipping-container-a",
+      "url": "assets/game/kenney-industrial/shipping-container-a.glb",
+      "sha256": "7b2d5ca874c8e659ee6cfd1614f0470b70410b2ddc7620ac83b8954dedeb861d",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -0.6900008320808411,
+          2.5397421943296195e-9,
+          -1.5233334302902222
+        ],
+        "max": [
+          0.6899996399879456,
+          1.2891850471496582,
+          1.5233334302902222
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "prop"
+    },
+    {
+      "id": "water-tower",
+      "url": "assets/game/kenney-industrial/water-tower.glb",
+      "sha256": "11ac7ae19f32ce889bfe7a9c8e78c8ce8c77b7a76b52fd4ffa439a022ea2ef40",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -0.45330578088760376,
+          -6.897010894347306e-24,
+          -0.4424465596675873
+        ],
+        "max": [
+          0.45330676436424255,
+          2.278367519378662,
+          0.44244661927223206
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "prop"
+    },
+    {
+      "id": "chimney-basic",
+      "url": "assets/game/kenney-industrial/chimney-basic.glb",
+      "sha256": "e677e15aa89365aaeca4809ed3b48ab113a169191f6cc77fa7bb0d3195597674",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -0.10000000149011612,
+          0,
+          -0.10000000149011612
+        ],
+        "max": [
+          0.10000000149011612,
+          1,
+          0.10000000149011612
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "prop"
+    },
+    {
+      "id": "detail-tank",
+      "url": "assets/game/kenney-industrial/detail-tank.glb",
+      "sha256": "9e955732e4ef9ccff4a4d6967d29d8a7d2f9ed16c903923f2568216d9f0b50d2",
+      "dependencies": [
+        "Textures/colormap.png"
+      ],
+      "bounds": {
+        "min": [
+          -0.42400017380714417,
+          -2.8199664484680564e-18,
+          -0.25764763355255127
+        ],
+        "max": [
+          0.42400023341178894,
+          0.41529566049575806,
+          0.2576480507850647
+        ]
+      },
+      "author": "Kenney",
+      "license": "CC0",
+      "role": "prop"
+    }
+  ],
+  "dependencies": {
+    "Textures/colormap.png": "950f4f891ebd05a2affac810e6eeb0fea1511bc39039b65a3cbf2e17d17bc6a2"
+  }
+}
