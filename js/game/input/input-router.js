@@ -30,6 +30,7 @@ export function createInputRouter({
   gamepad,
   touch,
   isEnabled = () => true,
+  onInvalidated = () => {},
 } = {}) {
   const adapters = { keyboard, gamepad, touch };
   let activeDevice = 'keyboard';
@@ -39,6 +40,7 @@ export function createInputRouter({
     if (disposed) return false;
     const nextDevice = selectActiveInput(activeDevice, device, activity, isEnabled());
     if (nextDevice === activeDevice) return false;
+    onInvalidated('ownership');
     adapters[activeDevice]?.reset?.();
     activeDevice = nextDevice;
     return true;

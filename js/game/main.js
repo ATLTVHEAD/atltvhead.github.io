@@ -10,6 +10,7 @@ import { createGamepadInput } from './input/gamepad.js';
 import { createTouchInput } from './input/touch.js';
 import { createInputRouter } from './input/input-router.js';
 import { createGameSession } from './runtime/game-session.js';
+import { bindInputLifecycle } from './runtime/input-lifecycle.js';
 import { applyAvatarPose } from './render/avatar-pose.js';
 import {
   createFollowCameraState,
@@ -267,6 +268,7 @@ export function startSkateGame({ root, THREE }) {
       isEnabled: isPlaying,
       onIntent: (activity) => inputRouter?.notifyIntent('gamepad', activity),
       onStatusChange: updateGamepadStatus,
+      onInvalidated: () => session?.invalidateInput(),
     });
     const touchInput = createTouchInput({
       controlsRoot: touchControls,
@@ -280,6 +282,7 @@ export function startSkateGame({ root, THREE }) {
       gamepad: gamepadInput,
       touch: touchInput,
       isEnabled: isPlaying,
+      onInvalidated: () => session?.invalidateInput(),
     });
     input = inputRouter;
     registerCleanup(() => {
@@ -315,6 +318,10 @@ export function startSkateGame({ root, THREE }) {
       },
     });
 
+    const lifecycle = bindInputLifecycle({ target: window, documentObject: document,
+      form: customizationForm, canvas, session, input });
+    registerCleanup(() => lifecycle.dispose());
+
     customizationBinding = customizationForm
       ? bindCustomizationForm(customizationForm, (appearance) => {
         setAvatarAppearance(avatar, appearance);
@@ -340,7 +347,7 @@ export function startSkateGame({ root, THREE }) {
 
     function onContextLost(event) {
       event.preventDefault();
-      session.pause();
+      session.suspend('context-lost');
       showBootError(root, '3D graphics paused unexpectedly. Retry to rebuild the game.');
     }
 

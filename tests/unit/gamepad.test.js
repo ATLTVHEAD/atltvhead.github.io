@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGamepadInput } from '../../js/game/input/gamepad.js';
+import { createInputRouter } from '../../js/game/input/input-router.js';
 
 function createGamepad({ axes = [0, 0, 0, 0], mapping = 'standard' } = {}) {
   return {
@@ -27,8 +28,8 @@ function createTarget() {
     removeEventListener(type, callback) {
       listeners.get(type)?.delete(callback);
     },
-    dispatch(type) {
-      for (const callback of [...(listeners.get(type) ?? [])]) callback({ type });
+    dispatch(type, details = {}) {
+      for (const callback of [...(listeners.get(type) ?? [])]) callback({ type, ...details });
     },
     listenerCount(type) {
       return listeners.get(type)?.size ?? 0;
@@ -37,6 +38,109 @@ function createTarget() {
 }
 
 describe('createGamepadInput', () => {
+  it('gamepad_otherControllerDisconnectDoesNotInvalidateActivePad', () => {
+    const active = createGamepad({ axes: [0, -0.7, 0, 0] });
+    const other = { ...createGamepad(), id: 'Other pad', index: 1 };
+    const target = createTarget();
+    const invalidations = [];
+    const input = createGamepadInput({ target, getGamepads: () => [active, other],
+      onInvalidated: (reason) => invalidations.push(reason) });
+    input.sample();
+    target.dispatch('gamepaddisconnected', { gamepad: other });
+    expect(invalidations).toEqual([]);
+    expect(input.sample().throttle).toBe(0.7);
+    input.dispose();
+  });
+  it('gamepad_missingPollInvalidatesQueuedInputImmediatelyOnce', () => {
+    let pad = createGamepad();
+    const invalidations = [];
+    const input = createGamepadInput({ getGamepads: () => pad ? [pad] : [],
+      onInvalidated: (reason) => invalidations.push(reason) });
+    input.sample();
+    pad = null;
+    input.sample();
+    input.sample();
+    expect(invalidations).toEqual(['gamepad-disconnected']);
+    input.dispose();
+  });
+  it('gamepad_gradualStickAcquiresOwnership', () => {
+    const pad = createGamepad();
+    let router;
+    const input = createGamepadInput({
+      getGamepads: () => [pad],
+      onIntent: (activity) => router.notifyIntent('gamepad', activity),
+    });
+    router = createInputRouter({ gamepad: input });
+    router.sample();
+    for (let index = 1; index <= 70; index += 1) {
+      pad.axes[1] = -index / 100;
+      router.sample();
+    }
+    expect(router.getActiveDevice()).toBe('gamepad');
+    expect(router.sample().throttle).toBe(0.7);
+    router.dispose();
+  });
+
+  it('gamepad_newJumpWorksWhileOtherControlIsSuppressed', () => {
+    const pad = createGamepad({ axes: [0, -0.7, 0, 0.18] });
+    const input = createGamepadInput({ getGamepads: () => [pad] });
+    input.reset();
+    setButton(pad, 0, true);
+    expect(input.sample()).toMatchObject({ jumpPressed: true, throttle: 0 });
+    expect(input.sample().jumpPressed).toBe(false);
+    pad.axes[1] = 0;
+    input.sample();
+    pad.axes[1] = -0.5;
+    expect(input.sample().throttle).toBe(0.5);
+    input.dispose();
+  });
+
+  it('gamepad_replacementDoesNotReuseEdges', () => {
+    let pad = createGamepad();
+    const input = createGamepadInput({ getGamepads: () => [pad] });
+    input.sample();
+    pad = { ...createGamepad(), id: 'Replacement pad' };
+    setButton(pad, 0, true);
+    expect(input.sample().jumpPressed).toBe(false);
+    setButton(pad, 0, false);
+    input.sample();
+    setButton(pad, 0, true);
+    expect(input.sample().jumpPressed).toBe(true);
+    input.dispose();
+  });
+
+  it('gamepad_sameIdentityReconnectSuppressesHeldControls', () => {
+    let pad = createGamepad();
+    const input = createGamepadInput({ getGamepads: () => pad ? [pad] : [] });
+    input.sample();
+    pad = null;
+    input.sample();
+    pad = createGamepad({ axes: [0, -0.8, 0, 0] });
+    setButton(pad, 0, true);
+    expect(input.sample()).toMatchObject({ throttle: 0, jumpPressed: false });
+    setButton(pad, 0, false);
+    pad.axes[1] = 0;
+    input.sample();
+    setButton(pad, 0, true);
+    expect(input.sample().jumpPressed).toBe(true);
+    input.dispose();
+  });
+
+  it('gamepad_disconnectEventInvalidatesSameIdentityWithoutAnEmptyPoll', () => {
+    let pad = createGamepad();
+    const target = createTarget();
+    const invalidations = [];
+    const input = createGamepadInput({ target, getGamepads: () => [pad],
+      onInvalidated: (reason) => invalidations.push(reason) });
+    input.sample();
+    target.dispatch('gamepaddisconnected');
+    pad = createGamepad();
+    setButton(pad, 0, true);
+    expect(input.sample().jumpPressed).toBe(false);
+    expect(invalidations).toContain('gamepad-replaced');
+    input.dispose();
+  });
+
   it('gamepad_deadzoneNeutralizesSmallAxesAndPreservesAnalogThrottle', () => {
     const gamepad = createGamepad({ axes: [0.14, -0.15, 0, 0] });
     const input = createGamepadInput({ getGamepads: () => [gamepad] });

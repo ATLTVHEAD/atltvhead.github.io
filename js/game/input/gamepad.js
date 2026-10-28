@@ -44,11 +44,6 @@ function connectedGamepads(getGamepads) {
   }
 }
 
-function latestGamepad(getGamepads) {
-  return connectedGamepads(getGamepads)
-    .find((gamepad) => gamepad.mapping === 'standard') ?? null;
-}
-
 function controlsActive(gamepad, axes = readAxes(gamepad), buttons = readButtons(gamepad)) {
   return axes.some((axis) => Math.abs(axis) > AXIS_DEAD_ZONE)
     || ACTION_BUTTON_INDICES.some((index) => buttons[index]);
@@ -65,13 +60,24 @@ export function createGamepadInput({
   isEnabled = () => true,
   onIntent = () => {},
   onStatusChange = () => {},
+  onInvalidated = () => {},
 } = {}) {
   let previousButtons = [];
   let previousAxes = [0, 0, 0, 0];
   let status = null;
   let focused = true;
-  let ignoreUntilNeutral = false;
+  let suppressedAxes = [false, false, false, false];
+  let suppressedButtons = [];
+  let axisArmed = [true, true, true, true];
+  let identity = null;
+  let disconnectedSinceIdentity = false;
   let disposed = false;
+
+  function selectedRaw() {
+    return connectedGamepads(getGamepads).find((pad) => pad.mapping === 'standard') ?? null;
+  }
+
+  function mappedPad(raw) { return raw; }
 
   function setStatus(nextStatus) {
     if (status === nextStatus) return;
@@ -85,7 +91,7 @@ export function createGamepadInput({
       setStatus('disconnected');
       return null;
     }
-    const gamepad = connected.find((candidate) => candidate.mapping === 'standard');
+    const gamepad = mappedPad(selectedRaw());
     if (!gamepad) {
       setStatus('unsupported');
       return null;
@@ -105,8 +111,11 @@ export function createGamepadInput({
   }
 
   function reset() {
-    syncBaseline(latestGamepad(getGamepads));
-    ignoreUntilNeutral = true;
+    const pad = mappedPad(selectedRaw());
+    syncBaseline(pad);
+    suppressedAxes = previousAxes.map((axis) => Math.abs(axis) > AXIS_DEAD_ZONE);
+    suppressedButtons = [...previousButtons];
+    axisArmed = previousAxes.map((axis) => Math.abs(axis) < 0.2);
   }
 
   function onBlur() {
@@ -123,33 +132,61 @@ export function createGamepadInput({
     if (documentObject?.hidden) reset();
   }
 
+  function onDisconnected(event) {
+    if (event?.gamepad && identity !== `${event.gamepad.index}:${event.gamepad.id}`) return;
+    if (identity !== null && !disconnectedSinceIdentity) {
+      disconnectedSinceIdentity = true;
+      onInvalidated('gamepad-disconnected');
+    }
+    reset();
+  }
+
   function currentGamepad() {
     if (disposed || !focused || documentObject?.hidden || !isEnabled()) return null;
     return getGamepad();
   }
 
-  function suppressUntilNeutral(gamepad, axes, buttons) {
-    if (!ignoreUntilNeutral) return false;
-    syncBaseline(gamepad);
-    if (!controlsActive(gamepad, axes, buttons)) ignoreUntilNeutral = false;
-    return true;
+  function filteredControls(gamepad) {
+    const key = `${gamepad.index}:${gamepad.id}`;
+    if (identity !== null && (identity !== key || disconnectedSinceIdentity)) {
+      reset();
+      onInvalidated('gamepad-replaced');
+    }
+    identity = key;
+    disconnectedSinceIdentity = false;
+    const axes = readAxes(gamepad).map((axis, index) => {
+      if (suppressedAxes[index] && Math.abs(axis) <= AXIS_DEAD_ZONE) suppressedAxes[index] = false;
+      return suppressedAxes[index] ? 0 : axis;
+    });
+    const buttons = readButtons(gamepad).map((pressed, index) => {
+      if (!pressed) suppressedButtons[index] = false;
+      return suppressedButtons[index] ? false : pressed;
+    });
+    return { axes, buttons };
   }
 
   function sample() {
     const neutral = createNeutralInputFrame();
     const gamepad = currentGamepad();
     if (!gamepad) {
+      if (identity !== null && focused && !documentObject?.hidden && isEnabled()) {
+        if (!disconnectedSinceIdentity) {
+          disconnectedSinceIdentity = true;
+          onInvalidated('gamepad-disconnected');
+        }
+      }
       syncBaseline(null);
       return neutral;
     }
 
-    const axes = readAxes(gamepad);
-    const buttons = readButtons(gamepad);
-    if (suppressUntilNeutral(gamepad, axes, buttons)) return neutral;
-
-    const activity = Math.max(...axes.map(Math.abs));
-    const axesChanged = axes.some((axis, index) => Math.abs(axis - previousAxes[index]) > 0.05);
-    if (activity >= 0.2 && axesChanged) onIntent(activity);
+    const { axes, buttons } = filteredControls(gamepad);
+    axes.forEach((axis, index) => {
+      if (Math.abs(axis) <= AXIS_DEAD_ZONE) axisArmed[index] = true;
+      if (axisArmed[index] && Math.abs(axis) >= 0.2) {
+        axisArmed[index] = false;
+        onIntent(Math.abs(axis));
+      }
+    });
 
     const rising = (index) => Boolean(buttons[index] && !previousButtons[index]);
     const jumpPressed = rising(0);
@@ -177,9 +214,7 @@ export function createGamepadInput({
   function sampleCameraInput(deltaSeconds = 1 / 60) {
     const gamepad = currentGamepad();
     if (!gamepad) return neutralCameraInput();
-    const axes = readAxes(gamepad);
-    const buttons = readButtons(gamepad);
-    if (suppressUntilNeutral(gamepad, axes, buttons)) return neutralCameraInput();
+    const { axes } = filteredControls(gamepad);
 
     const delta = Number.isFinite(deltaSeconds) ? Math.max(0, Math.min(deltaSeconds, 0.1)) : 0;
     const cameraActivity = Math.max(Math.abs(axes[2]), Math.abs(axes[3]));
@@ -187,7 +222,7 @@ export function createGamepadInput({
       || Math.abs(axes[3] - previousAxes[3]) > 0.05;
     if (cameraActivity >= 0.2 && cameraChanged) onIntent(cameraActivity);
     return {
-      yawDelta: -axes[2] * CAMERA_TURN_RATE * delta,
+      yawDelta: axes[2] ? -axes[2] * CAMERA_TURN_RATE * delta : 0,
       pitchDelta: axes[3] * CAMERA_TURN_RATE * delta,
       zoomDelta: 0,
     };
@@ -196,7 +231,7 @@ export function createGamepadInput({
   const targetListeners = [
     ['blur', onBlur],
     ['focus', onFocus],
-    ['gamepaddisconnected', reset],
+    ['gamepaddisconnected', onDisconnected],
   ];
   for (const [type, listener] of targetListeners) target?.addEventListener?.(type, listener);
   documentObject?.addEventListener?.('visibilitychange', onVisibilityChange);

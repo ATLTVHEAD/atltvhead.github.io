@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createNeutralInputFrame } from '../../js/game/input/actions.js';
 import {
   advanceFixedStep,
+  clearPendingInput,
   createFixedStepState,
 } from '../../js/game/core/fixed-step.js';
 
@@ -23,6 +24,23 @@ function simulateAtFramesPerSecond(framesPerSecond) {
 }
 
 describe('advanceFixedStep', () => {
+  it('fixedStep_clearPendingPreservesPoseAndTick', () => {
+    const pose = { ticks: 0 };
+    const pending = advanceFixedStep(createFixedStepState(pose), 8, {
+      ...createNeutralInputFrame(), jumpPressed: true, tagPressed: true,
+    }, (state) => state).loopState;
+    const cleared = clearPendingInput(pending);
+    const inputs = [];
+    const result = advanceFixedStep(cleared, 20, createNeutralInputFrame(), (state, input) => {
+      inputs.push(input);
+      return state;
+    });
+    expect(cleared.currentState).toBe(pose);
+    expect(cleared.tick).toBe(0);
+    expect(pending.pendingEdges.jumpPressed).toBe(true);
+    expect(result.steps).toBeGreaterThan(0);
+    expect(inputs.every((input) => !input.jumpPressed && !input.tagPressed)).toBe(true);
+  });
   it('advanceFixedStep_30_60_120RenderSchedulesProduceTheSame60Ticks', () => {
     const at30 = simulateAtFramesPerSecond(30);
     const at60 = simulateAtFramesPerSecond(60);

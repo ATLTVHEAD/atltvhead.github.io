@@ -190,6 +190,12 @@ body.skate-page {
     background: rgba(18, 18, 31, 0.76);
 }
 
+@media (min-width: 601px) and (min-height: 481px) {
+    .skate-root[data-game-state='playing'] .skate-card:has(~ .touch-controls:not([hidden])) {
+        bottom: 14rem;
+    }
+}
+
 .skate-root[data-game-state='playing'] .skate-eyebrow,
 .skate-root[data-game-state='playing'] .skate-card h1,
 .skate-root[data-game-state='playing'] .skate-intro,

@@ -61,6 +61,10 @@ export function createFixedStepState(initialState, options = {}) {
   };
 }
 
+export function clearPendingInput(loopState) {
+  return { ...loopState, pendingEdges: emptyEdges() };
+}
+
 export function advanceFixedStep(loopState, elapsedMs, rawInput, step, options = {}) {
   if (typeof step !== 'function') throw new TypeError('A fixed-step callback is required.');
   const input = normalizeInputFrame(rawInput ?? createNeutralInputFrame());

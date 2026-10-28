@@ -1,5 +1,46 @@
 import { expect, test } from '@playwright/test';
 
+test('inputDevices_heldStickAtJoinDoesNotBlockFreshJump', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.testGamepad = { connected: true, id: 'Held Test Pad', index: 0, mapping: 'standard',
+      axes: [0, -0.8, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    Object.defineProperty(navigator, 'getGamepads', { value: () => [window.testGamepad] });
+  });
+  await page.goto('/skate.html');
+  await page.getByRole('button', { name: 'Join City' }).click();
+  await page.waitForTimeout(150);
+  await page.evaluate(() => { window.testGamepad.buttons[0] = { pressed: true, value: 1 }; });
+  await page.waitForFunction(() => window.skateGame.lastEvents.some((event) => event.type === 'jumped'),
+    null, { timeout: 5_000 });
+});
+
+test('inputDevices_gradualStickMovementAcquiresGamepad', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.testGamepad = { connected: true, id: 'Gradual Test Pad', index: 0, mapping: 'standard',
+      axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, value: 0 })) };
+    Object.defineProperty(navigator, 'getGamepads', { value: () => [window.testGamepad] });
+  });
+  await page.goto('/skate.html');
+  await page.getByRole('button', { name: 'Join City' }).click();
+  await page.evaluate(async () => {
+    for (let i = 1; i <= 70; i += 1) {
+      window.testGamepad.axes[1] = -i / 100;
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+  });
+  await page.waitForFunction(() => window.skateGame.skaterState.speed > 1, null, { timeout: 5_000 });
+});
+
+test('inputDevices_hybridTouchDesktopCanLeaveWithoutObstructedButtons', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.addInitScript(() => Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 10 }));
+  await page.goto('/skate.html');
+  await page.getByRole('button', { name: 'Join City' }).click();
+  await expect(page.locator('#touch-controls')).toBeVisible();
+  await page.getByRole('button', { name: 'Leave City' }).click({ timeout: 2_000 });
+  await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'ready');
+});
+
 test('inputDevices_standardGamepadMovesAndJumpsInTheLocalLoop', async ({ page }) => {
   await page.addInitScript(() => {
     const gamepad = {

@@ -1,5 +1,5 @@
 import { createNeutralInputFrame } from '../input/actions.js';
-import { advanceFixedStep, createFixedStepState } from '../core/fixed-step.js';
+import { advanceFixedStep, clearPendingInput, createFixedStepState } from '../core/fixed-step.js';
 
 function emptyInput() {
   return {
@@ -33,6 +33,39 @@ export function createGameSession({
   let frameHandle = null;
   let disposed = false;
   let recentEvents = [];
+  let beforeSample = () => {};
+  const suspensions = new Set();
+
+  function invalidateInput() {
+    fixedStep = clearPendingInput(fixedStep);
+  }
+
+  function suspend(reason) {
+    if (disposed || mode === 'preview') return false;
+    suspensions.add(reason);
+    invalidateInput();
+    fixedStep = { ...fixedStep, accumulatorMs: 0 };
+    input.reset?.();
+    if (mode === 'playing') {
+      mode = 'paused';
+      cancelFrame();
+      lastTimestamp = null;
+      onModeChange(mode);
+    }
+    return true;
+  }
+
+  function restore(reason) {
+    if (disposed || !suspensions.delete(reason)) return false;
+    if (mode === 'paused' && suspensions.size === 0) {
+      input.reset?.();
+      lastTimestamp = null;
+      mode = 'playing';
+      onModeChange(mode);
+      scheduleFrame();
+    }
+    return true;
+  }
 
   const cancelFrame = () => {
     if (frameHandle === null) return;
@@ -58,6 +91,7 @@ export function createGameSession({
       alpha: result.alpha,
       steps: result.steps,
       elapsedMs,
+      elapsedPlayMs: fixedStep.tick * fixedStep.stepMs,
       events,
       recentEvents: [...recentEvents],
     });
@@ -66,22 +100,17 @@ export function createGameSession({
   function onAnimationFrame(timestamp) {
     frameHandle = null;
     if (mode !== 'playing' || disposed) return;
+    beforeSample();
+    if (mode !== 'playing') return;
     if (documentObject?.hidden) {
-      fixedStep = advanceFixedStep(
-        fixedStep,
-        0,
-        createNeutralInputFrame(),
-        step,
-        { hidden: true },
-      ).loopState;
-      lastTimestamp = null;
-      input.reset?.();
+      suspend('visibility');
       return;
     }
 
     if (lastTimestamp === null) {
       lastTimestamp = timestamp;
-      const initialFrame = advanceFixedStep(fixedStep, 0, input.sample(), step);
+      const sampledInput = input.sample();
+      const initialFrame = advanceFixedStep(fixedStep, 0, sampledInput, step);
       fixedStep = initialFrame.loopState;
       publishFrame(initialFrame, 0);
       scheduleFrame();
@@ -90,34 +119,29 @@ export function createGameSession({
 
     const elapsedMs = Math.max(0, timestamp - lastTimestamp);
     lastTimestamp = timestamp;
-    const result = advanceFixedStep(fixedStep, elapsedMs, input.sample(), step);
+    const sampledInput = input.sample();
+    const result = advanceFixedStep(fixedStep, elapsedMs, sampledInput, step);
     fixedStep = result.loopState;
     publishFrame(result, elapsedMs);
     scheduleFrame();
   }
 
   function onVisibilityChange() {
-    if (mode !== 'playing' || disposed) return;
+    if (disposed || mode === 'preview') return;
     if (documentObject?.hidden) {
-      cancelFrame();
-      fixedStep = advanceFixedStep(
-        fixedStep,
-        0,
-        createNeutralInputFrame(),
-        step,
-        { hidden: true },
-      ).loopState;
-      lastTimestamp = null;
-      input.reset?.();
+      suspend('visibility');
     } else {
-      lastTimestamp = null;
-      scheduleFrame();
+      restore('visibility');
     }
   }
 
   documentObject?.addEventListener?.('visibilitychange', onVisibilityChange);
 
   return {
+    setBeforeSample(callback) { beforeSample = callback ?? (() => {}); },
+    invalidateInput,
+    suspend,
+    restore,
     joinLocal() {
       if (disposed || mode !== 'preview') return false;
       input.reset?.();
@@ -130,22 +154,10 @@ export function createGameSession({
       return true;
     },
     pause() {
-      if (mode !== 'playing') return false;
-      mode = 'paused';
-      cancelFrame();
-      lastTimestamp = null;
-      input.reset?.();
-      onModeChange(mode);
-      return true;
+      return suspend('manual');
     },
     resume() {
-      if (disposed || mode !== 'paused') return false;
-      input.reset?.();
-      lastTimestamp = null;
-      mode = 'playing';
-      onModeChange(mode);
-      scheduleFrame();
-      return true;
+      return restore('manual');
     },
     leave() {
       if (disposed || mode === 'preview') return false;
@@ -153,6 +165,7 @@ export function createGameSession({
       input.reset?.();
       lastTimestamp = null;
       recentEvents = [];
+      suspensions.clear();
       fixedStep = createFixedStepState(resetState());
       mode = 'preview';
       onModeChange(mode);
@@ -174,6 +187,7 @@ export function createGameSession({
         skaterState: fixedStep.currentState,
         previousSkaterState: fixedStep.previousState,
         tick: fixedStep.tick,
+        elapsedPlayMs: fixedStep.tick * fixedStep.stepMs,
         alpha: fixedStep.accumulatorMs / fixedStep.stepMs,
         recentEvents: [...recentEvents],
       };

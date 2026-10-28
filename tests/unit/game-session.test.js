@@ -67,6 +67,71 @@ function createFixture() {
 }
 
 describe('createGameSession', () => {
+  it('session_suspensionDiscardsPartialAccumulatedTime', () => {
+    const { session, raf } = createFixture();
+    session.joinLocal();
+    raf.tick(0);
+    raf.tick(10);
+    session.suspend('blur');
+    session.restore('blur');
+    raf.tick(1_000);
+    raf.tick(1_007);
+    expect(session.getState().tick).toBe(0);
+    session.dispose();
+  });
+  it('session_invalidationDuringSamplingClearsPreviouslyQueuedEdge', () => {
+    const { session, raf, input, onEvents } = createFixture();
+    session.joinLocal();
+    input.sample.mockReturnValueOnce({ ...createNeutralInputFrame(), jumpPressed: true });
+    raf.tick(0);
+    input.sample.mockImplementationOnce(() => {
+      session.invalidateInput();
+      return createNeutralInputFrame();
+    });
+    raf.tick(20);
+    expect(onEvents).not.toHaveBeenCalled();
+    session.dispose();
+  });
+  it('session_leaveClearsSuspensionReasonsBeforeRejoin', () => {
+    const { session } = createFixture();
+    session.joinLocal();
+    session.suspend('context-lost');
+    session.leave();
+    session.joinLocal();
+    session.suspend('controls');
+    session.restore('controls');
+    expect(session.getState().mode).toBe('playing');
+    session.dispose();
+  });
+  it('session_modalCloseCannotResumeContextLoss', () => {
+    const { session, raf } = createFixture();
+    session.joinLocal();
+    raf.tick(0);
+    raf.tick(100);
+    const before = session.getState().elapsedPlayMs;
+    expect(before).toBeCloseTo(100);
+    session.suspend('controls');
+    session.suspend('context-lost');
+    session.restore('controls');
+    raf.tick(1_000);
+    expect(session.getState().mode).toBe('paused');
+    expect(session.getState().elapsedPlayMs).toBe(before);
+    session.restore('context-lost');
+    raf.tick(2_000);
+    expect(session.getState().elapsedPlayMs).toBe(before);
+    session.dispose();
+  });
+
+  it('session_invalidateDropsActionsQueuedBeforeATick', () => {
+    const { session, raf, input, onEvents } = createFixture();
+    session.joinLocal();
+    input.sample.mockReturnValueOnce({ ...createNeutralInputFrame(), jumpPressed: true });
+    raf.tick(0);
+    session.invalidateInput();
+    raf.tick(20);
+    expect(onEvents).not.toHaveBeenCalled();
+    session.dispose();
+  });
   it('gameSession_joinRunsFixedLocalTicksAndForwardsOneEdge', () => {
     const fixture = createFixture();
     fixture.input.sample.mockReturnValueOnce({ ...createNeutralInputFrame(), jumpPressed: true });
