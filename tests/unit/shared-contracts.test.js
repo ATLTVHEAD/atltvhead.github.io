@@ -37,7 +37,7 @@ describe('shared catalogs and contracts', () => {
 
   it('worldDescriptor_pinsSharedWorldVersionsAndScale', () => {
     expect(WORLD_DESCRIPTOR).toEqual({
-      version: 1,
+      version: 2,
       seed: 2026,
       radius: 32,
       tuningVersion: 1,

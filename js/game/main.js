@@ -1,6 +1,6 @@
 import { createCityLayout } from './world/city-layout.js';
 import { compileCityWorld } from './world/city-surfaces.js';
-import { createCityScene } from './render/city-scene.js';
+import { createCityScene, disposeCityScene } from './render/city-scene.js';
 import { createTvheadAvatar, setAvatarAppearance } from './render/avatar.js';
 import { bindCustomizationForm, readCustomizationForm } from './ui/customization.js';
 import { createCitySkater, stepSkaterOnCity } from './core/city-skater.js';
@@ -18,24 +18,6 @@ import {
   createFollowCameraState,
   updateFollowCamera,
 } from './render/follow-camera.js';
-
-function disposeCityResources(city, geometryCache = null) {
-  const geometries = new Set();
-  const materials = new Set();
-
-  city.traverse((object) => {
-    if (object.geometry) geometries.add(object.geometry);
-    if (Array.isArray(object.material)) {
-      object.material.forEach((material) => materials.add(material));
-    } else if (object.material) {
-      materials.add(object.material);
-    }
-  });
-  for (const geometry of geometryCache?.values?.() ?? []) geometries.add(geometry);
-
-  geometries.forEach((geometry) => geometry.dispose());
-  materials.forEach((material) => material.dispose());
-}
 
 function viewportFor(root) {
   return { width: root.clientWidth, height: root.clientHeight };
@@ -95,14 +77,15 @@ export function startSkateGame({ root, THREE, assets = null }) {
     const layout = createCityLayout({
       radius: WORLD_DESCRIPTOR.radius,
       seed: WORLD_DESCRIPTOR.seed,
+      assetManifest: assets?.manifest ?? null,
     });
     const world = compileCityWorld(layout);
     const initialSkaterState = createCitySkater(world);
     const geometryCache = new Map();
-    city = createCityScene(THREE, layout, world);
+    city = createCityScene(THREE, layout, world, assets);
     registerCleanup(() => {
       if (scene) scene.remove(city);
-      if (city) disposeCityResources(city, geometryCache);
+      if (city) disposeCityScene(city, assets, geometryCache);
       geometryCache.clear();
     });
     const customizationForm = root.querySelector('#customization-form');

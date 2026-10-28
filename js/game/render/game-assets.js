@@ -95,6 +95,7 @@ export async function loadGameAssets({ THREE, manifest, signal, onProgress = () 
     throw error;
   }
   return {
+    manifest: structuredClone(manifest),
     get(id) { return templates.get(id)?.gltf ?? null; },
     retain(id) {
       if (disposed) throw new Error('Asset library is disposed.');

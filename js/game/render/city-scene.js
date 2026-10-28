@@ -59,6 +59,21 @@ function buildBuildingMesh(THREE, building) {
   });
 }
 
+function buildImportedBuilding(THREE, building, assets) {
+  const placement = building.placement;
+  const root = new THREE.Group();
+  root.name = building.id;
+  root.position.set(...placement.position);
+  const rotation = new THREE.Matrix4().makeBasis(...placement.axes.map((axis) => vector(THREE, axis)));
+  root.quaternion.setFromRotationMatrix(rotation);
+  const model = assets.retain(placement.assetId);
+  model.scale.setScalar(placement.scale);
+  model.position.set(...placement.sourceOrigin.map((value) => -value * placement.scale));
+  root.add(model);
+  return markFeature(root, 'building', { buildingId: building.id, assetId: placement.assetId,
+    borrowedAsset: model, basePosition: placement.position, surfaceNormal: building.normal });
+}
+
 function buildRailMesh(THREE, rail, material) {
   const group = new THREE.Group();
   group.name = rail.id;
@@ -83,7 +98,25 @@ function buildRailMesh(THREE, rail, material) {
   return group;
 }
 
-export function createCityScene(THREE, layout, world = compileCityWorld(layout)) {
+export function disposeCityScene(city, assets = null, geometryCache = null) {
+  const geometries = new Set(geometryCache?.values?.() ?? []);
+  const materials = new Set();
+  function collect(object) {
+    if (object.userData?.borrowedAsset) {
+      assets?.release(object.userData.borrowedAsset);
+      return;
+    }
+    if (object.geometry) geometries.add(object.geometry);
+    const owned = Array.isArray(object.material) ? object.material : [object.material];
+    owned.filter(Boolean).forEach((material) => materials.add(material));
+    object.children?.forEach(collect);
+  }
+  collect(city);
+  geometries.forEach((geometry) => geometry.dispose());
+  materials.forEach((material) => material.dispose());
+}
+
+export function createCityScene(THREE, layout, world = compileCityWorld(layout), assets = null) {
   if (!THREE?.Group || !layout || !Number.isFinite(layout.planetRadius)) {
     throw new Error('Three.js and a valid city layout are required.');
   }
@@ -128,8 +161,18 @@ export function createCityScene(THREE, layout, world = compileCityWorld(layout))
       ? buildRampMesh(THREE, surface, rampMaterial)
       : buildStreetMesh(THREE, surface, streetMaterial));
   }
-  for (const building of layout.buildings ?? []) city.add(buildBuildingMesh(THREE, building));
-  for (const rail of layout.rails ?? []) city.add(buildRailMesh(THREE, rail, railMaterial));
+  try {
+    for (const building of layout.buildings ?? []) {
+      city.add(assets && building.placement ? buildImportedBuilding(THREE, building, assets)
+        : buildBuildingMesh(THREE, building));
+    }
+    for (const rail of layout.rails ?? []) city.add(buildRailMesh(THREE, rail, railMaterial));
+  } catch (error) {
+    disposeCityScene(city, assets);
+    // The rail material may not have been attached to any geometry yet.
+    railMaterial.dispose();
+    throw error;
+  }
 
   return city;
 }

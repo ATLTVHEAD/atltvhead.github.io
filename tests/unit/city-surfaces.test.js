@@ -118,6 +118,14 @@ describe('compileCityWorld', () => {
 });
 
 describe('city contact queries', () => {
+  it('sweepSkater_allowsSeparatingFromEitherOverlappingBoxCornerFace', () => {
+    const world = compileCityWorld({ radius: 32, surfaces: [], rails: [],
+      buildings: [{ id: 'wall', position: [0, 32, 0], normal: [0, 1, 0], size: [2, 5, 2],
+        placement: { axes: [[1, 0, 0], [0, 1, 0], [0, 0, 1]] } }] });
+    expect(sweepSkater(world, [1.2, 34, 1.2], [1.2, 34, 1.4], 0.25).blocked).toBe(false);
+    expect(sweepSkater(world, [1.2, 34, 1.2], [1.4, 34, 1.2], 0.25).blocked).toBe(false);
+    expect(sweepSkater(world, [1.2, 34, 1.2], [1.1, 34, 1.1], 0.25).blocked).toBe(true);
+  });
   it('sweepSkater_allowsMovingOutOfExistingWallContact', () => {
     const world = compileCityWorld({ radius: 32, surfaces: [], rails: [],
       buildings: [{ id: 'wall', position: [0, 32, 0], normal: [0, 1, 0], size: [2, 5, 2] }] });

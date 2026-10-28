@@ -138,6 +138,20 @@ function compileBuilding(building) {
   const base = [...building.position];
   const top = add(base, scale(normal, height));
   const footprintRadius = Math.hypot(width / 2, depth / 2);
+  if (building.placement) {
+    const axes = building.placement.axes.map((axis) => [...axis]);
+    const center = add(base, scale(normal, height / 2));
+    const halfExtents = [width / 2, height / 2, depth / 2];
+    const corners = [];
+    for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+      corners.push([0, 1, 2].map((axis) => center[axis]
+        + x * axes[0][axis] * halfExtents[0] + y * axes[1][axis] * halfExtents[1]
+        + z * axes[2][axis] * halfExtents[2]));
+    }
+    return { id: building.id, position: base, normal, size: [width, height, depth],
+      placement: building.placement, collision: { type: 'box', center, axes, halfExtents },
+      bounds: boundsFor(corners) };
+  }
   const capsuleBounds = boundsFor([base, top]);
   for (let axis = 0; axis < 3; axis += 1) {
     capsuleBounds.min[axis] -= footprintRadius;
@@ -284,6 +298,7 @@ export function compileCityWorld(layout) {
   return {
     descriptor: Object.freeze({
       ...WORLD_DESCRIPTOR,
+      geometry: layout.assetPlacements ? 'kenney-industrial-v1' : 'blockout-v1',
       radius,
       seed: Number.isFinite(layout.seed) ? layout.seed : WORLD_DESCRIPTOR.seed,
     }),

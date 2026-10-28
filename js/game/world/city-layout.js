@@ -6,6 +6,7 @@ import {
   projectToTangent,
 } from '../core/planet-math.js';
 import { WORLD_DESCRIPTOR } from '../shared/world-config.js';
+import { placeCityAssets } from './asset-placements.js';
 
 const DEFAULT_RADIUS = WORLD_DESCRIPTOR.radius;
 const LOOP_NODE_COUNT = 12;
@@ -315,7 +316,7 @@ export function findGrindRail(layout, position, forward) {
   return best;
 }
 
-export function createCityLayout({ radius = DEFAULT_RADIUS, seed = 1 } = {}) {
+export function createCityLayout({ radius = DEFAULT_RADIUS, seed = 1, assetManifest = null } = {}) {
   const planetRadius = Number.isFinite(radius) && radius > 0 ? radius : DEFAULT_RADIUS;
   const random = createRandom(seed);
   const streetRadius = planetRadius + 0.28;
@@ -358,7 +359,7 @@ export function createCityLayout({ radius = DEFAULT_RADIUS, seed = 1 } = {}) {
     createRail(surfaces[10], 'rail-1'),
   ];
 
-  return {
+  const layout = {
     planetRadius,
     radius: planetRadius,
     seed: seedToNumber(seed),
@@ -367,4 +368,5 @@ export function createCityLayout({ radius = DEFAULT_RADIUS, seed = 1 } = {}) {
     buildings,
     rails,
   };
+  return assetManifest ? placeCityAssets(layout, assetManifest) : layout;
 }

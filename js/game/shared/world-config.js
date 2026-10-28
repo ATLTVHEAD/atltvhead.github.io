@@ -1,5 +1,5 @@
 export const WORLD_DESCRIPTOR = Object.freeze({
-  version: 1,
+  version: 2,
   seed: 2026,
   radius: 32,
   tuningVersion: 1,

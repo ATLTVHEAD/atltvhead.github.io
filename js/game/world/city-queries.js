@@ -145,6 +145,36 @@ function closestSegments(a0, a1, b0, b1) {
   return { s, distance: Math.hypot(...subtract(pointA, pointB)) };
 }
 
+function sweepBox(box, from, to, radius) {
+  const start = box.axes.map((axis) => dot3(subtract(from, box.center), axis));
+  const end = box.axes.map((axis) => dot3(subtract(to, box.center), axis));
+  const extents = box.halfExtents.map((value) => value + Math.max(0, radius));
+  const gaps = start.map((value, axis) => Math.abs(value) - extents[axis]);
+  if (gaps.every((gap) => gap <= 0)) {
+    const nearestGap = Math.max(...gaps);
+    const separating = gaps.some((gap, axis) => gap >= nearestGap - 1e-9
+      && (end[axis] - start[axis]) * (Math.sign(start[axis]) || 1) > 1e-9);
+    if (separating) return null;
+    return { progress: 0, safeProgress: 0 };
+  }
+  let enter = 0;
+  let exit = 1;
+  for (let axis = 0; axis < 3; axis += 1) {
+    const direction = end[axis] - start[axis];
+    if (Math.abs(direction) < 1e-12) {
+      if (Math.abs(start[axis]) > extents[axis]) return null;
+      continue;
+    }
+    const first = (-extents[axis] - start[axis]) / direction;
+    const second = (extents[axis] - start[axis]) / direction;
+    enter = Math.max(enter, Math.min(first, second));
+    exit = Math.min(exit, Math.max(first, second));
+    if (enter > exit) return null;
+  }
+  const length = Math.hypot(...subtract(to, from));
+  return { progress: enter, safeProgress: Math.max(0, enter - 1e-4 / Math.max(length, 1e-9)) };
+}
+
 export function sweepSkater(world, from, to, radius = 0.25) {
   if (!world || !isFiniteVec3(from) || !isFiniteVec3(to)) {
     return { position: isFiniteVec3(from) ? [...from] : [0, 0, 0], blocked: false, hitId: null };
@@ -154,6 +184,14 @@ export function sweepSkater(world, from, to, radius = 0.25) {
 
   for (const building of world.buildings ?? []) {
     const capsule = building.collision;
+    if (capsule?.type === 'box') {
+      const hit = sweepBox(capsule, from, to, radius);
+      if (hit && (!bestHit || hit.progress < bestHit.progress - 1e-9
+          || (Math.abs(hit.progress - bestHit.progress) <= 1e-9 && building.id < bestHit.hitId))) {
+        bestHit = { ...hit, hitId: building.id };
+      }
+      continue;
+    }
     if (capsule?.type !== 'capsule') continue;
     const closest = closestSegments(from, to, capsule.start, capsule.end);
     const combinedRadius = Math.max(0, radius) + capsule.radius;

@@ -19,6 +19,20 @@ The correction stops horizontal motion but continues radial gravity and support/
 
 Verification before the collision commit: `npm test` passed 166 unit / 33 browser tests. The Worker suite was empty. Human confirmation of the screenshot scenario is still pending.
 
-## Next review
+## Visible-building integration
 
-Visible-building integration and its verification will be recorded here before the next playtest. The scene must retain the current avatar and routes; new mechanics and final comic art are not acceptance claims for this checkpoint.
+The actual browser scene now places 24 imported Kenney buildings (eight variants) along the existing routes. A common scale of 3 preserves the models' relative proportions. Shared canonical transforms feed both mesh placement and oriented-box collision bounds; all sampled street vertices retain skater clearance. The native-box proxies are conservative around recesses/details, not an invitation to skate roofs or enter doors. Radius, street/ramp widths, avatar and camera distances are preserved. Descriptor version 2 distinguishes asset-backed `kenney-industrial-v1` from legacy `blockout-v1` test layouts.
+
+The loader exposes a copy of its manifest to the pure layout builder. Scene teardown releases borrowed asset instances separately from owned street/avatar resources. A real-browser peer-scene test confirms disposing one scene does not dispose shared building geometry used by another. Actual GLB scene bounds match compiled collider bounds within 0.02 units.
+
+The first full asset-backed run passed 34/35 browser tests but hit the existing hybrid Leave test's two-second interaction timeout under 16 simultaneous software-WebGL tests. Three focused repeats passed unchanged. Local Playwright concurrency is now limited to four workers (CI remains two); no interaction timeout or assertion was relaxed. The subsequent full suite passed 170 unit / 35 browser tests. The Worker suite was empty.
+
+A read-only review found that escaping one of two equally close box faces could still be blocked at a corner. The corner sweep regression failed before the fix and passed afterward; a second regression verifies escape from an actual imported building. Reviewer-deferred items—exact screenshot replay, physical-device/visual comfort, Worker/multiplayer behavior and the explicitly deferred Steam Controller/later mechanics—remain outside automated acceptance and must not be marked passed.
+
+Developer-inspected preview and chase captures: `artifacts/skate-progress/visible-kenney-preview.png` and `visible-kenney-chase.png` (ignored artifacts). These are not user approval or a phone-FPS claim.
+
+## Human review gate
+
+Run `npm run dev`, then open `http://localhost:8000/skate.html` and reload to pick up the current modules. Follow `tests/manual/device-matrix.md`, especially the new wall-fall/escape and visible-building clearance checks. Steam Controller troubleshooting is not required. The exact screenshot encounter still needs human confirmation; deterministic regressions establish the corrected failure mode, not a replay of the user's original inputs.
+
+Stop here for the user's playtest before new mechanics. Branch/landmark/tag-target portions of Task 4, automatic traversal, rigging and final comic art remain open.

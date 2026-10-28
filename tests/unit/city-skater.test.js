@@ -52,14 +52,16 @@ describe('createCitySkater', () => {
 
 describe('stepSkaterOnCity', () => {
   it.each([
-    ['side', (point) => point],
-    ['pole', ([x, y, z]) => [y, z, x]],
-    ['underside', ([x, y, z]) => [x, -y, -z]],
-  ])('citySkater_airborneWallContactKeepsFallingAndLandsWithoutRespawn_%s', (_, transform) => {
+    ['side', (point) => point, false],
+    ['pole', ([x, y, z]) => [y, z, x], false],
+    ['underside', ([x, y, z]) => [x, -y, -z], false],
+    ['imported-box', (point) => point, true],
+  ])('citySkater_airborneWallContactKeepsFallingAndLandsWithoutRespawn_%s', (_, transform, box) => {
     const contactWorld = compileCityWorld({ radius: 32, planetRadius: 32,
       surfaces: [], rails: [], buildings: [{ id: 'wall', position: transform([0, 32, 0]),
-        normal: transform([0, 1, 0]), size: [2, 5, 2] }] });
-    let state = { ...createCitySkater(contactWorld), position: transform([1.6, 34, 0]),
+        normal: transform([0, 1, 0]), size: [2, 5, 2],
+        ...(box ? { placement: { axes: [[1, 0, 0], [0, 1, 0], [0, 0, 1]] } } : {}) }] });
+    let state = { ...createCitySkater(contactWorld), position: transform([box ? 1.2 : 1.6, 34, 0]),
       forward: transform([-1, 0, 0]), mode: 'airborne', verticalSpeed: -1,
       groundRadius: 32, speed: 4, coyoteAgeMs: 101 };
     const initialRadius = Math.hypot(...state.position);

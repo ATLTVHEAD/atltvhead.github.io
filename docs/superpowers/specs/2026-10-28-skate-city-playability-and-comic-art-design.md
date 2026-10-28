@@ -5,6 +5,7 @@ Date: 2026-10-28
 Status: **user-approved design (2026-10-28); implementation-plan review and execution-method selection pending**.
 
 Audit: `docs/reviews/2026-10-28-skate-city-playability-audit.md`.
+Approved playtest follow-up: `docs/reviews/2026-10-28-collision-and-visible-assets-checkpoint.md` — defer Steam Controller-specific acceptance, prioritize wall-fall/escape correctness and visible Kenney building placement, then obtain user playtest feedback before new mechanics.
 Existing roadmap: `docs/superpowers/plans/2026-10-27-tvhead-skate-city-tdd-plan.md`.
 
 ## 1. Outcome and agreed direction

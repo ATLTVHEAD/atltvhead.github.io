@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-28-skate-city-playability-and-comic-art-design.md` (user approved 2026-10-28).
 
+**Approved playtest reprioritization (2026-10-28):** Steam Controller-specific acceptance is deferred; other gamepads have user-reported movement/Jump/camera success. Complete the bounded wall-fall/escape correction and visible Kenney building integration, then stop for a user playtest before new mechanics. Evidence, limits and the review checklist are in [`../../reviews/2026-10-28-collision-and-visible-assets-checkpoint.md`](../../reviews/2026-10-28-collision-and-visible-assets-checkpoint.md). This checkpoint is not completion of the full authored-route/tag-target Task 4 or waiver of the Task 5 mechanics review.
+
 ## Global Constraints
 
 - Keep radius 32, widened streets, established character scale and local camera distances; preserve spherical/contact up, ordinary collision-stop and original viewer/portfolio behavior.
