@@ -270,6 +270,89 @@ kbd {
     font-size: 0.78rem;
 }
 
+.skate-input-status {
+    margin: 0 0 0.65rem;
+    color: #ffd58f;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.touch-controls {
+    position: fixed;
+    z-index: 3;
+    inset: auto max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    pointer-events: none;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.touch-stick-zone {
+    position: relative;
+    flex: 0 0 7.25rem;
+    width: 7.25rem;
+    aspect-ratio: 1;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(83, 237, 255, 0.18), rgba(18, 18, 31, 0.76));
+    box-shadow: inset 0 0 1.5rem rgba(83, 237, 255, 0.12), 0 0.5rem 1.5rem rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
+    touch-action: none;
+}
+
+.touch-stick-knob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(83, 237, 255, 0.8), rgba(255, 57, 135, 0.8));
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.35);
+    transform: translate(0, 0);
+    translate: -50% -50%;
+    pointer-events: none;
+}
+
+.touch-action-group {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(3rem, 1fr));
+    gap: 0.45rem;
+    width: min(8.5rem, 42vw);
+    pointer-events: auto;
+}
+
+.touch-action-group button {
+    min-width: 3rem;
+    min-height: 3rem;
+    padding: 0.3rem;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    background: rgba(18, 18, 31, 0.84);
+    color: #f8f5ff;
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 800;
+    box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    touch-action: none;
+}
+
+.touch-action-group button:active {
+    border-color: #53edff;
+    background: rgba(83, 237, 255, 0.35);
+}
+
+.touch-action-group button:focus-visible {
+    outline: 2px solid #53edff;
+    outline-offset: 2px;
+}
+
 @media (max-width: 600px) {
     body.skate-page {
         overflow: auto;
@@ -302,14 +385,61 @@ kbd {
     }
 
     .skate-root[data-game-state='playing'] .skate-card {
-        top: auto;
+        top: calc(4.75rem + env(safe-area-inset-top));
         right: 0.75rem;
-        bottom: 0.75rem;
+        bottom: auto;
         left: auto;
-        width: min(220px, calc(100% - 1.5rem));
+        width: min(190px, calc(100% - 1.5rem));
+        padding: 0.65rem 0.75rem;
     }
 
     .skate-card {
         margin: auto 0;
+    }
+
+    .touch-controls {
+        gap: 0.5rem;
+    }
+
+    .touch-stick-zone {
+        flex-basis: 7rem;
+        width: 7rem;
+    }
+
+    .touch-action-group {
+        width: min(8.5rem, 44vw);
+        gap: 0.35rem;
+    }
+
+    .touch-action-group button {
+        min-width: 3rem;
+        min-height: 3rem;
+    }
+}
+
+@media (max-height: 480px) and (max-width: 900px) {
+    .skate-root[data-game-state='playing'] .skate-card {
+        top: max(0.75rem, env(safe-area-inset-top));
+        right: max(1rem, env(safe-area-inset-right));
+        bottom: auto;
+        left: auto;
+        width: min(220px, 32vw);
+        padding: 0.5rem 0.75rem;
+    }
+
+    .touch-stick-zone {
+        flex-basis: 5.5rem;
+        width: 5.5rem;
+    }
+
+    .touch-action-group {
+        width: min(13rem, 42vw);
+        grid-template-columns: repeat(3, minmax(2.75rem, 1fr));
+    }
+
+    .touch-action-group button {
+        min-width: 2.75rem;
+        min-height: 2.75rem;
+        border-radius: 0.7rem;
     }
 }

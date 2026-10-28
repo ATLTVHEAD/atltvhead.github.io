@@ -48,10 +48,26 @@
                     <li><kbd>J / K</kbd> tricks</li>
                     <li><kbd>F</kbd> tag · <kbd>E</kbd> emote</li>
                     <li>Drag to orbit · scroll to zoom</li>
+                    <li>Gamepad: left stick move · A jump · X/Y tricks · B tag · D-pad emote · right stick camera</li>
+                    <li>Touch: left stick and action buttons; camera follows automatically</li>
                 </ul>
             </section>
 
+            <p id="input-status" class="skate-input-status" role="status" aria-live="polite" hidden></p>
             <p id="connection-state" class="skate-status" aria-live="polite">Offline preview</p>
+        </section>
+
+        <section id="touch-controls" class="touch-controls" aria-label="Touch skating controls" hidden>
+            <div class="touch-stick-zone" data-touch-stick role="img" aria-label="Left stick: steer, push up to accelerate, pull down to brake">
+                <span class="touch-stick-knob" data-touch-stick-knob></span>
+            </div>
+            <div class="touch-action-group" aria-label="Skating actions">
+                <button type="button" data-touch-action="jump" aria-label="Jump">Jump</button>
+                <button type="button" data-touch-action="spin" aria-label="Spin trick">Spin</button>
+                <button type="button" data-touch-action="grab" aria-label="Grab trick">Grab</button>
+                <button type="button" data-touch-action="tag" aria-label="Place tag">Tag</button>
+                <button type="button" data-touch-action="emote" aria-label="Wave emote">Wave</button>
+            </div>
         </section>
 
         <section id="game-error" class="game-error" role="alert" hidden>

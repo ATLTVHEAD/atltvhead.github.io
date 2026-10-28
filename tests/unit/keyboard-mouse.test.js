@@ -42,7 +42,7 @@ function key(target, type, keyValue, values = {}) {
   });
 }
 
-function createInputFixture({ enabled = true } = {}) {
+function createInputFixture({ enabled = true, onIntent = () => {}, onReset = () => {} } = {}) {
   const target = createTarget();
   const documentObject = createTarget();
   const canvas = createTarget();
@@ -56,6 +56,8 @@ function createInputFixture({ enabled = true } = {}) {
     form,
     documentObject,
     isEnabled,
+    onIntent,
+    onReset,
   });
   return { target, documentObject, canvas, form, inputElement, adapter, isEnabled };
 }
@@ -132,6 +134,78 @@ describe('createKeyboardMouseInput', () => {
     expect(target.listenerCount('keydown')).toBe(0);
     key(target, 'keydown', 'w');
     expect(adapter.sample().throttle).toBe(0);
+  });
+
+  it('keyboard_notifiesTheRouterOnlyForEnabledIntentionalInput', () => {
+    const intents = [];
+    const { target, inputElement, adapter, isEnabled } = createInputFixture({
+      onIntent: (activity) => intents.push(activity),
+    });
+
+    key(target, 'keydown', 'w');
+    key(target, 'keydown', 'w', { repeat: true });
+    key(target, 'keydown', 'f');
+    expect(intents).toEqual([1, 1]);
+
+    isEnabled.mockReturnValue(false);
+    key(target, 'keydown', 'a');
+    isEnabled.mockReturnValue(true);
+    key(target, 'keydown', 'd', { target: inputElement });
+    expect(intents).toEqual([1, 1]);
+    adapter.dispose();
+  });
+
+  it('keyboard_blurHiddenAndFormFocusNotifyRouterToResetEveryDevice', () => {
+    const resets = [];
+    const { target, documentObject, inputElement, adapter } = createInputFixture({
+      onReset: () => resets.push('reset'),
+    });
+
+    target.dispatch('blur');
+    target.dispatch('focusin', { target: inputElement });
+    documentObject.hidden = true;
+    documentObject.dispatch('visibilitychange');
+    expect(resets).toHaveLength(3);
+    adapter.dispose();
+  });
+
+  it('keyboard_doesNotHijackSpaceFromAFocusedTouchActionButton', () => {
+    const intents = [];
+    const { target, adapter } = createInputFixture({
+      onIntent: (activity) => intents.push(activity),
+    });
+    const touchActionButton = {
+      tagName: 'BUTTON',
+      closest(selector) {
+        return selector === '[data-touch-action]' ? this : null;
+      },
+    };
+
+    const keydown = key(target, 'keydown', ' ', { target: touchActionButton });
+    expect(keydown.defaultPrevented).toBe(false);
+    expect(adapter.sample().jumpPressed).toBe(false);
+    expect(intents).toEqual([]);
+    adapter.dispose();
+  });
+
+  it('keyboard_preservesOtherControlsWhenATouchActionButtonHasFocus', () => {
+    const { target, adapter } = createInputFixture();
+    const touchActionButton = {
+      tagName: 'BUTTON',
+      closest(selector) {
+        return selector === '[data-touch-action]' ? this : null;
+      },
+    };
+
+    key(target, 'keydown', 'w', { target: touchActionButton });
+    key(target, 'keydown', 'j', { target: touchActionButton });
+    key(target, 'keydown', 'Shift', { target: touchActionButton });
+    expect(adapter.sample()).toMatchObject({
+      throttle: 1,
+      trickPressed: 'spin',
+      grindHeld: true,
+    });
+    adapter.dispose();
   });
 
   it('camera_dragWheelAndCancelAreCapturedAndReleased', () => {

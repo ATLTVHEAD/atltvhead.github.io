@@ -20,6 +20,10 @@ function isTextTarget(target, form) {
   return Boolean(target.closest?.('input, textarea, select, [contenteditable="true"]'));
 }
 
+function isTouchActionTarget(target) {
+  return Boolean(target?.closest?.('[data-touch-action]'));
+}
+
 function emptyCameraInput() {
   return { yawDelta: 0, pitchDelta: 0, zoomDelta: 0 };
 }
@@ -30,6 +34,8 @@ export function createKeyboardMouseInput({
   form = null,
   documentObject = globalThis.document,
   isEnabled = () => true,
+  onIntent = () => {},
+  onReset = () => {},
 } = {}) {
   if (!target?.addEventListener || !canvas?.addEventListener) {
     throw new TypeError('Keyboard input needs an event target and a game canvas.');
@@ -84,11 +90,13 @@ export function createKeyboardMouseInput({
 
   function onKeyDown(event) {
     const name = keyName(event);
-    if (!ACTION_KEYS.has(name) || !canControl() || isTextTarget(event.target, form)) return;
+    if (!ACTION_KEYS.has(name) || !canControl() || isTextTarget(event.target, form)
+      || (name === 'space' && isTouchActionTarget(event.target))) return;
     event.preventDefault?.();
     if (pressed.has(name) || event.repeat) return;
     pressed.add(name);
     held.add(name);
+    onIntent(1);
     if (name === 'space') edges.jumpPressed = true;
     if (name === 'j') edges.trickPressed = 'spin';
     if (name === 'k') edges.trickPressed = 'grab';
@@ -105,11 +113,22 @@ export function createKeyboardMouseInput({
   }
 
   function onFocusIn(event) {
-    if (isTextTarget(event.target, form)) reset();
+    if (isTextTarget(event.target, form)) {
+      reset();
+      onReset();
+    }
   }
 
   function onVisibilityChange() {
-    if (documentObject?.hidden) reset();
+    if (documentObject?.hidden) {
+      reset();
+      onReset();
+    }
+  }
+
+  function onBlur() {
+    reset();
+    onReset();
   }
 
   function onPointerDown(event) {
@@ -121,6 +140,7 @@ export function createKeyboardMouseInput({
     } catch {
       releasePointer(true);
     }
+    onIntent(1);
     event.preventDefault?.();
   }
 
@@ -145,13 +165,14 @@ export function createKeyboardMouseInput({
   function onWheel(event) {
     if (!canControl() || event.target !== canvas || !Number.isFinite(event.deltaY)) return;
     cameraInput.zoomDelta += event.deltaY * 0.01;
+    onIntent(1);
     event.preventDefault?.();
   }
 
   const targetListeners = [
     ['keydown', onKeyDown],
     ['keyup', onKeyUp],
-    ['blur', reset],
+    ['blur', onBlur],
     ['focusin', onFocusIn],
   ];
   const canvasListeners = [

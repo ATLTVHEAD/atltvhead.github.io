@@ -6,6 +6,9 @@ import { bindCustomizationForm, readCustomizationForm } from './ui/customization
 import { createCitySkater, stepSkaterOnCity } from './core/city-skater.js';
 import { WORLD_DESCRIPTOR } from './shared/world-config.js';
 import { createKeyboardMouseInput } from './input/keyboard-mouse.js';
+import { createGamepadInput } from './input/gamepad.js';
+import { createTouchInput } from './input/touch.js';
+import { createInputRouter } from './input/input-router.js';
 import { createGameSession } from './runtime/game-session.js';
 import { applyAvatarPose } from './render/avatar-pose.js';
 import {
@@ -143,6 +146,12 @@ export function startSkateGame({ root, THREE }) {
     const joinButton = root.querySelector('#join-city');
     const leaveButton = root.querySelector('#leave-city');
     const status = root.querySelector('#connection-state');
+    const inputStatus = root.querySelector('#input-status');
+    const touchControls = root.querySelector('#touch-controls');
+    let currentGamepadStatus = 'disconnected';
+    const touchAvailable = Boolean(
+      window.matchMedia?.('(pointer: coarse)').matches || window.navigator?.maxTouchPoints > 0,
+    );
 
     function render() {
       if (!disposed) renderer.render(scene, camera);
@@ -187,11 +196,27 @@ export function startSkateGame({ root, THREE }) {
       previewCameraSnapshot = null;
     }
 
+    function updateGamepadStatus(gamepadStatus) {
+      currentGamepadStatus = gamepadStatus;
+      if (!inputStatus) return;
+      const unsupported = gamepadStatus === 'unsupported'
+        && session?.getState().mode === 'playing';
+      inputStatus.hidden = !unsupported;
+      inputStatus.textContent = unsupported
+        ? 'Gamepad unsupported — keyboard or touch controls remain available.'
+        : '';
+    }
+
     function updateUI(mode) {
       if (mode === 'preview') {
         root.dataset.gameState = 'ready';
         if (joinButton) joinButton.hidden = false;
         if (leaveButton) leaveButton.hidden = true;
+        if (touchControls) touchControls.hidden = true;
+        if (inputStatus) {
+          inputStatus.hidden = true;
+          inputStatus.textContent = '';
+        }
         if (status) {
           status.dataset.gameMode = 'preview';
           status.textContent = 'Offline preview';
@@ -206,6 +231,8 @@ export function startSkateGame({ root, THREE }) {
       if (controls) controls.enabled = false;
       if (joinButton) joinButton.hidden = true;
       if (leaveButton) leaveButton.hidden = false;
+      if (touchControls) touchControls.hidden = !(mode === 'playing' && touchAvailable);
+      updateGamepadStatus(currentGamepadStatus);
       if (status) {
         status.dataset.gameMode = mode;
         status.textContent = mode === 'playing'
@@ -223,13 +250,38 @@ export function startSkateGame({ root, THREE }) {
       }
     }
 
-    input = createKeyboardMouseInput({
+    const isPlaying = () => session?.getState().mode === 'playing';
+    let inputRouter = null;
+    const keyboardInput = createKeyboardMouseInput({
       target: window,
       canvas,
       form: customizationForm,
       documentObject: document,
-      isEnabled: () => session?.getState().mode === 'playing',
+      isEnabled: isPlaying,
+      onIntent: (activity) => inputRouter?.notifyIntent('keyboard', activity),
+      onReset: () => inputRouter?.reset(),
     });
+    const gamepadInput = createGamepadInput({
+      target: window,
+      documentObject: document,
+      isEnabled: isPlaying,
+      onIntent: (activity) => inputRouter?.notifyIntent('gamepad', activity),
+      onStatusChange: updateGamepadStatus,
+    });
+    const touchInput = createTouchInput({
+      controlsRoot: touchControls,
+      target: window,
+      documentObject: document,
+      isEnabled: isPlaying,
+      onIntent: (activity) => inputRouter?.notifyIntent('touch', activity),
+    });
+    inputRouter = createInputRouter({
+      keyboard: keyboardInput,
+      gamepad: gamepadInput,
+      touch: touchInput,
+      isEnabled: isPlaying,
+    });
+    input = inputRouter;
     registerCleanup(() => {
       if (session) session.dispose();
       else input?.dispose();
@@ -249,7 +301,7 @@ export function startSkateGame({ root, THREE }) {
         lastEvents = frame.recentEvents;
         const state = frame.skaterState;
         applyAvatarPose(avatar, state, frame.elapsedMs);
-        const cameraInput = input.sampleCameraInput();
+        const cameraInput = input.sampleCameraInput(frame.elapsedMs / 1000);
         cameraState = updateFollowCamera(
           cameraState,
           state,
