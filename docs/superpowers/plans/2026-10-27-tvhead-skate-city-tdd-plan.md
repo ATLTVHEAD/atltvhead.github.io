@@ -354,7 +354,7 @@ Pure rules in `core/social-rules.js` operate on explicit `RoomState` plus inject
 - [x] Add PR CI now: lockfile install, browser install, unit/browser tests, no secrets/deploy; `test:unit` and configured E2E fail if empty. Workers remains explicitly not-yet-implemented until Task 10, not described as tested.
 - [x] Per function RED→GREEN; focused commands and full `npm test` pass. Final gate: 101 unit tests and 17 browser tests; Workers suite remains empty and not-yet-implemented. `npm run build` and `git diff --check` pass.
 - [ ] **Manual checkpoint pending (not replaced by automation):** with manual camera input untouched, skate a complete connected lap in both directions, enter/leave the ramp, jump/land, collide with a building, cross changed orientations and return to spawn. Then test optional look/release, stopping, reversal and an alley obstruction. Compare with Messenger's automatic over-the-shoulder readability, not JSR camera fidelity; record comfort, route visibility, shoulder/boom/look-ahead tuning and screenshots in the device matrix. Repeat the camera-only hands-off requirement with gamepad/touch in Tasks 7–8. No physical/manual route playtest has been performed in this environment.
-- [ ] Commit: `feat: add playable offline skating and planet follow camera` (implementation commit exists; follow-up ramp-contact review fix is pending; Task 6 remains pending until the manual checkpoint is recorded).
+- [x] Commits: `14e4b52 feat: add playable offline skating and planet follow camera`; `3c10e53 fix: align skater pose with surface contact normal`. Task 6 remains pending until the manual checkpoint is recorded.
 
 ## Task 7 — Milestone 6: Gamepad and Mobile Parity [Critical]
 
