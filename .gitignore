@@ -44,6 +44,9 @@ build/
 playwright-report/
 test-results/
 
+# Local game development screenshots (kept across test runs)
+artifacts/skate-progress/
+
 # Temporary files
 tmp/
 temp/
