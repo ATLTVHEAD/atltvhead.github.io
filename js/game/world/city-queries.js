@@ -158,6 +158,11 @@ export function sweepSkater(world, from, to, radius = 0.25) {
     const closest = closestSegments(from, to, capsule.start, capsule.end);
     const combinedRadius = Math.max(0, radius) + capsule.radius;
     if (closest.distance > combinedRadius) continue;
+    const startDistance = closestSegments(from, from, capsule.start, capsule.end).distance;
+    const endDistance = closestSegments(to, to, capsule.start, capsule.end).distance;
+    // Existing contact must not trap a skater who is moving away from the wall.
+    if (startDistance <= combinedRadius && endDistance > startDistance + 1e-9
+        && closest.distance >= startDistance - 1e-9) continue;
     if (!bestHit || closest.s < bestHit.progress - 1e-9
       || (Math.abs(closest.s - bestHit.progress) <= 1e-9 && building.id < bestHit.hitId)) {
       bestHit = {

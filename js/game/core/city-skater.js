@@ -243,7 +243,7 @@ export function stepSkaterOnCity(state, rawInput, deltaSeconds, world, tuningOve
   nextState.speed = speed;
 
   const currentRadius = Math.hypot(...nextState.position);
-  const moved = advanceAlongSphere(nextState.position, forward, speed * delta, currentRadius);
+  let moved = advanceAlongSphere(nextState.position, forward, speed * delta, currentRadius);
   const collision = sweepSkater(world, nextState.position, moved, tuning.bodyRadius);
   if (collision.blocked) {
     nextState.position = collision.position;
@@ -251,10 +251,13 @@ export function stepSkaterOnCity(state, rawInput, deltaSeconds, world, tuningOve
       nextState.mode = 'bailed';
       nextState.bailRemainingMs = tuning.bailDurationMs;
       events.push(eventRecord(nextState, 'bailed', events.length, { hitId: collision.hitId }));
+      nextState.speed = 0;
+      nextState.verticalSpeed = 0;
+      return { state: nextState, events };
     }
+    // A wall stops tangential motion, not gravity or support/landing resolution.
+    moved = collision.position;
     nextState.speed = 0;
-    nextState.verticalSpeed = 0;
-    return { state: nextState, events };
   }
 
   if (nextState.mode === 'grounded') {

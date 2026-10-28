@@ -51,6 +51,41 @@ describe('createCitySkater', () => {
 });
 
 describe('stepSkaterOnCity', () => {
+  it.each([
+    ['side', (point) => point],
+    ['pole', ([x, y, z]) => [y, z, x]],
+    ['underside', ([x, y, z]) => [x, -y, -z]],
+  ])('citySkater_airborneWallContactKeepsFallingAndLandsWithoutRespawn_%s', (_, transform) => {
+    const contactWorld = compileCityWorld({ radius: 32, planetRadius: 32,
+      surfaces: [], rails: [], buildings: [{ id: 'wall', position: transform([0, 32, 0]),
+        normal: transform([0, 1, 0]), size: [2, 5, 2] }] });
+    let state = { ...createCitySkater(contactWorld), position: transform([1.6, 34, 0]),
+      forward: transform([-1, 0, 0]), mode: 'airborne', verticalSpeed: -1,
+      groundRadius: 32, speed: 4, coyoteAgeMs: 101 };
+    const initialRadius = Math.hypot(...state.position);
+    const events = [];
+    const first = stepSkaterOnCity(state, createNeutralInputFrame(), 1 / 60, contactWorld);
+    expect(first.state.verticalSpeed).toBeLessThan(-1);
+    expect(Math.hypot(...first.state.position)).toBeLessThan(initialRadius);
+    state = first.state;
+    for (let tick = 0; tick < 120; tick += 1) {
+      const result = stepSkaterOnCity(state, createNeutralInputFrame(), 1 / 60, contactWorld);
+      state = result.state;
+      events.push(...result.events);
+    }
+    expect(state.mode).toBe('grounded');
+    expect(Math.hypot(...state.position)).toBeCloseTo(32, 6);
+    expect(events.filter((event) => event.type === 'landed')).toHaveLength(1);
+    expect(events.some((event) => event.type === 'bailed')).toBe(false);
+    expect(state.position.reduce((sum, value, axis) => sum + value * transform([1, 0, 0])[axis], 0)).toBeGreaterThan(1);
+    const landedAt = [...state.position];
+    state.forward = transform([1, 0, 0]);
+    for (let tick = 0; tick < 60; tick += 1) {
+      state = stepSkaterOnCity(state, { ...createNeutralInputFrame(), throttle: 1 }, 1 / 60, contactWorld).state;
+    }
+    expect(Math.hypot(...state.position.map((value, axis) => value - landedAt[axis]))).toBeGreaterThan(1);
+    expect(state.mode).toBe('grounded');
+  });
   it('citySkater_transportsHeadingToTheNewRadialTangentPlane', () => {
     const initial = { ...createCitySkater(world), forward: [0, 0, -1], speed: 8 };
     const result = stepSkaterOnCity(initial, createNeutralInputFrame(), 1 / 30, world);
@@ -201,9 +236,10 @@ describe('stepSkaterOnCity', () => {
     const normal = building.normal;
     const tangent = normalize3([normal[2], 0, -normal[0]]);
     const collisionRadius = building.collision.radius + 0.25;
-    const position = building.position.map((value, axis) => (
+    const nearWall = building.position.map((value, axis) => (
       value + normal[axis] * 0.2 + tangent[axis] * (collisionRadius + 0.1)
     ));
+    const position = multiply(normalize3(nearWall), world.radius);
     const state = {
       ...createCitySkater(world),
       position,
@@ -214,6 +250,7 @@ describe('stepSkaterOnCity', () => {
     const result = stepSkaterOnCity(state, createNeutralInputFrame(), 0.1, world);
 
     expect(result.state.mode).not.toBe('bailed');
+    expect(result.state.mode).toBe('grounded');
     expect(result.state.speed).toBe(0);
     expect(result.state.verticalSpeed).toBe(0);
     expect(result.events.filter(({ type }) => type === 'bailed')).toHaveLength(0);
