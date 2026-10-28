@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGamepadInput } from '../../js/game/input/gamepad.js';
 import { createInputRouter } from '../../js/game/input/input-router.js';
+import { standardGamepadMapping } from '../../js/game/input/gamepad-mapping.js';
 
 function createGamepad({ axes = [0, 0, 0, 0], mapping = 'standard' } = {}) {
   return {
@@ -61,6 +62,55 @@ describe('createGamepadInput', () => {
     input.sample();
     input.sample();
     expect(invalidations).toEqual(['gamepad-disconnected']);
+    input.dispose();
+  });
+  it('gamepad_diagnosticsRemainSafeWithoutADevice', () => {
+    const input = createGamepadInput({ getGamepads: () => [] });
+    expect(input.getDiagnostics()).toMatchObject({ status: 'disconnected', menuButtons: null });
+    input.dispose();
+  });
+  it('gamepad_nonstandardMappingDrivesGameplayAndDiagnosticsArePassive', () => {
+    const pad = createGamepad({ mapping: '' });
+    const intents = [];
+    const input = createGamepadInput({ getGamepads: () => [pad], onIntent: (x) => intents.push(x) });
+    input.selectGamepad(0);
+    const mapping = standardGamepadMapping(pad.id);
+    mapping.buttons.jump = 5;
+    input.setMapping(mapping);
+    input.sample();
+    setButton(pad, 5, true);
+    expect(input.getDiagnostics().normalized.buttons[0].pressed).toBe(true);
+    expect(intents).toEqual([]);
+    expect(input.sample().jumpPressed).toBe(true);
+    input.dispose();
+  });
+
+  it('gamepad_diagnosticsExposeDistinctMappedMenuActions', () => {
+    const pad = createGamepad({ mapping: '' });
+    const input = createGamepadInput({ getGamepads: () => [pad] });
+    input.selectGamepad(0);
+    const mapping = standardGamepadMapping(pad.id);
+    mapping.buttons.jump = 5;
+    mapping.buttons.confirm = 6;
+    input.setMapping(mapping);
+    setButton(pad, 6, true);
+    expect(input.getDiagnostics().menuButtons.confirm).toBe(true);
+    expect(input.sample().jumpPressed).toBe(false);
+    input.dispose();
+  });
+
+  it('gamepad_selectionDoesNotTransferHeldInputs', () => {
+    const first = createGamepad();
+    const second = { ...createGamepad(), index: 1, id: 'Second Controller' };
+    const input = createGamepadInput({ getGamepads: () => [first, second] });
+    input.sample();
+    setButton(second, 0, true);
+    input.selectGamepad(1);
+    expect(input.sample().jumpPressed).toBe(false);
+    setButton(second, 0, false);
+    input.sample();
+    setButton(second, 0, true);
+    expect(input.sample().jumpPressed).toBe(true);
     input.dispose();
   });
   it('gamepad_gradualStickAcquiresOwnership', () => {

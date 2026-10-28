@@ -11,6 +11,7 @@ import { createTouchInput } from './input/touch.js';
 import { createInputRouter } from './input/input-router.js';
 import { createGameSession } from './runtime/game-session.js';
 import { bindInputLifecycle } from './runtime/input-lifecycle.js';
+import { bindControlsPanel } from './ui/controls-panel.js';
 import { applyAvatarPose } from './render/avatar-pose.js';
 import {
   createFollowCameraState,
@@ -149,6 +150,8 @@ export function startSkateGame({ root, THREE }) {
     const status = root.querySelector('#connection-state');
     const inputStatus = root.querySelector('#input-status');
     const touchControls = root.querySelector('#touch-controls');
+    const playControls = root.querySelector('#play-controls');
+    let controlsPanel = null;
     let currentGamepadStatus = 'disconnected';
     const touchAvailable = Boolean(
       window.matchMedia?.('(pointer: coarse)').matches || window.navigator?.maxTouchPoints > 0,
@@ -214,6 +217,7 @@ export function startSkateGame({ root, THREE }) {
         if (joinButton) joinButton.hidden = false;
         if (leaveButton) leaveButton.hidden = true;
         if (touchControls) touchControls.hidden = true;
+        if (playControls) playControls.hidden = true;
         if (inputStatus) {
           inputStatus.hidden = true;
           inputStatus.textContent = '';
@@ -232,6 +236,7 @@ export function startSkateGame({ root, THREE }) {
       if (controls) controls.enabled = false;
       if (joinButton) joinButton.hidden = true;
       if (leaveButton) leaveButton.hidden = false;
+      if (playControls) playControls.hidden = false;
       if (touchControls) touchControls.hidden = !(mode === 'playing' && touchAvailable);
       updateGamepadStatus(currentGamepadStatus);
       if (status) {
@@ -301,6 +306,7 @@ export function startSkateGame({ root, THREE }) {
       ),
       onModeChange: updateUI,
       onFrame(frame) {
+        controlsPanel?.render();
         lastEvents = frame.recentEvents;
         const state = frame.skaterState;
         applyAvatarPose(avatar, state, frame.elapsedMs);
@@ -321,6 +327,9 @@ export function startSkateGame({ root, THREE }) {
     const lifecycle = bindInputLifecycle({ target: window, documentObject: document,
       form: customizationForm, canvas, session, input });
     registerCleanup(() => lifecycle.dispose());
+    controlsPanel = bindControlsPanel({ root, session, input, gamepad: gamepadInput,
+      onFocusPlay: () => canvas.focus({ preventScroll: true }) });
+    registerCleanup(() => controlsPanel.dispose());
 
     customizationBinding = customizationForm
       ? bindCustomizationForm(customizationForm, (appearance) => {

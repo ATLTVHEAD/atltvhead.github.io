@@ -1,4 +1,5 @@
 import { createNeutralInputFrame } from './actions.js';
+import { normalizeGamepad } from './gamepad-mapping.js';
 
 const AXIS_DEAD_ZONE = 0.15;
 const BUTTON_THRESHOLD = 0.5;
@@ -72,12 +73,28 @@ export function createGamepadInput({
   let identity = null;
   let disconnectedSinceIdentity = false;
   let disposed = false;
+  let selectedIndex = null;
+  let mapping = null;
 
   function selectedRaw() {
-    return connectedGamepads(getGamepads).find((pad) => pad.mapping === 'standard') ?? null;
+    const devices = connectedGamepads(getGamepads);
+    return selectedIndex === null
+      ? devices.find((pad) => pad.mapping === 'standard') ?? null
+      : devices.find((pad) => pad.index === selectedIndex) ?? null;
   }
 
-  function mappedPad(raw) { return raw; }
+  function mappedPad(raw) {
+    if (!raw) return null;
+    if (mapping && mapping.deviceId === raw.id) {
+      try {
+        return { id: raw.id, index: raw.index, connected: true, mapping: 'standard',
+          ...normalizeGamepad(raw, mapping) };
+      } catch {
+        return null;
+      }
+    }
+    return raw.mapping === 'standard' ? raw : null;
+  }
 
   function setStatus(nextStatus) {
     if (status === nextStatus) return;
@@ -240,6 +257,40 @@ export function createGamepadInput({
     sample,
     sampleCameraInput,
     reset,
+    selectGamepad(index) {
+      if (index !== null && (!Number.isInteger(index) || index < 0)) {
+        throw new RangeError('Gamepad index must be a nonnegative integer or null.');
+      }
+      selectedIndex = index;
+      identity = null;
+      reset();
+      onInvalidated('gamepad-selection');
+    },
+    setMapping(nextMapping) {
+      const raw = selectedRaw();
+      if (nextMapping !== null) normalizeGamepad(raw, nextMapping);
+      mapping = nextMapping;
+      reset();
+      onInvalidated('gamepad-mapping');
+    },
+    getDiagnostics() {
+      const devices = connectedGamepads(getGamepads).map((pad) => ({
+        id: pad.id, index: pad.index, mapping: pad.mapping,
+        axes: Array.from(pad.axes ?? []), buttons: Array.from(pad.buttons ?? [], (button) => ({
+          pressed: Boolean(button?.pressed), value: Number.isFinite(button?.value) ? button.value : 0,
+        })),
+      }));
+      const raw = selectedRaw();
+      const normalized = mappedPad(raw);
+      const menuBindings = mapping && raw && mapping.deviceId === raw.id
+        ? mapping.buttons : { menu: 9, confirm: 0, cancel: 1 };
+      return { devices, selectedIndex: raw?.index ?? selectedIndex,
+        normalized: normalized ? { axes: [...normalized.axes], buttons: Array.from(normalized.buttons) } : null,
+        menuButtons: normalized ? Object.fromEntries(['menu', 'confirm', 'cancel'].map((name) => [
+          name, buttonPressed(raw.buttons?.[menuBindings[name]]),
+        ])) : null,
+        status: devices.length === 0 ? 'disconnected' : normalized ? 'ready' : 'unsupported' };
+    },
     getStatus() {
       return status ?? 'disconnected';
     },

@@ -283,6 +283,43 @@ kbd {
     line-height: 1.4;
 }
 
+#play-controls p {
+    font-size: 0.8rem;
+    color: #f8f5ff;
+}
+
+#open-controls, .controls-panel button {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border: 1px solid #53edff;
+    border-radius: 0.5rem;
+    background: #252538;
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+.controls-panel {
+    position: fixed;
+    z-index: 5;
+    top: 50%;
+    left: 50%;
+    width: min(32rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    transform: translate(-50%, -50%);
+    padding: 1rem;
+    border: 1px solid #53edff;
+    border-radius: 0.8rem;
+    background: #12121f;
+    color: #f8f5ff;
+}
+
+.controls-panel pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
 .touch-controls {
     position: fixed;
     z-index: 3;
@@ -395,7 +432,7 @@ kbd {
         right: 0.75rem;
         bottom: auto;
         left: auto;
-        width: min(190px, calc(100% - 1.5rem));
+        width: min(145px, calc(100% - 1.5rem));
         padding: 0.65rem 0.75rem;
     }
 

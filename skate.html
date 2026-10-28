@@ -38,13 +38,16 @@
             </form>
 
             <button id="leave-city" type="button" hidden>Leave City</button>
+            <div id="play-controls" hidden>
+                <p data-active-device>Keyboard · W/A/S/D · Space</p>
+                <button id="open-controls" type="button">Controls</button>
+            </div>
 
             <section class="skate-help" aria-label="Game controls">
                 <h2>Controls</h2>
                 <ul>
                     <li><kbd>W</kbd> accelerate · <kbd>A</kbd>/<kbd>D</kbd> steer · <kbd>S</kbd> brake</li>
                     <li><kbd>Space</kbd> jump</li>
-                    <li><kbd>Shift</kbd> grind</li>
                     <li><kbd>J / K</kbd> tricks</li>
                     <li><kbd>F</kbd> tag · <kbd>E</kbd> emote</li>
                     <li>Drag to orbit · scroll to zoom</li>
@@ -55,6 +58,23 @@
 
             <p id="input-status" class="skate-input-status" role="status" aria-live="polite" hidden></p>
             <p id="connection-state" class="skate-status" aria-live="polite">Offline preview</p>
+        </section>
+
+        <section id="controls-panel" class="controls-panel" role="dialog" aria-modal="true" aria-labelledby="controls-title" hidden>
+            <h2 id="controls-title">Controls</h2>
+            <p>Keyboard: W/A/S/D to move, jump with Space, J/K for tricks, F to tag, E to wave.</p>
+            <p>Standard gamepad: left stick to move, A to jump, X/Y for tricks, B to tag, D-pad for emotes, right stick for camera.</p>
+            <p>Touch: use the left stick and action buttons.</p>
+            <details open><summary>Controller diagnostics</summary>
+                <pre data-controller-diagnostics></pre>
+                <label for="controller-select">Controller</label>
+                <select id="controller-select"><option value="">Automatic</option></select>
+                <button type="button" data-calibrate>Calibrate</button>
+                <button type="button" data-cancel-calibration hidden>Cancel calibration</button>
+                <button type="button" data-reset-mapping>Reset mapping</button>
+                <p data-calibration-status role="status"></p>
+            </details>
+            <button type="button" data-close-controls>Return to play</button>
         </section>
 
         <section id="touch-controls" class="touch-controls" aria-label="Touch skating controls" hidden>
