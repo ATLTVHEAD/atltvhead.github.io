@@ -221,6 +221,9 @@ function buildAvatarModel(THREE, appearance, geometryCache) {
   };
   avatar.userData.geometryCache = geometryCache;
   avatar.userData.THREE = THREE;
+  avatar.updateMatrixWorld(true);
+  const localBounds = new THREE.Box3().setFromObject(avatar);
+  avatar.userData.supportOffset = Math.max(0, -localBounds.min.y);
   return avatar;
 }
 

@@ -13,7 +13,7 @@ function multiply(vector, amount) {
 }
 
 function finiteState(state) {
-  return [...state.position, ...state.forward, state.speed, state.verticalSpeed]
+  return [...state.position, ...state.forward, ...state.supportNormal, state.speed, state.verticalSpeed]
     .every(Number.isFinite);
 }
 
@@ -41,6 +41,7 @@ describe('createCitySkater', () => {
     expect(defaultSkater.mode).toBe('grounded');
     expect(defaultSkater.speed).toBe(0);
     expect(defaultSkater.surfaceId).toBe(support.surfaceId);
+    expect(defaultSkater.supportNormal).toEqual(support.surfaceNormal);
     expect(Math.abs(support.clearance)).toBeLessThanOrEqual(0.02);
     expect(requested.surfaceId).toBe(world.spawnPoints.at(-1).surfaceId);
     expect(fallback.surfaceId).toBe(defaultSkater.surfaceId);
@@ -86,6 +87,33 @@ describe('stepSkaterOnCity', () => {
     expect(result.state.surfaceId).toBe(ramp.id);
     expect(Math.hypot(...result.state.position)).toBeCloseTo(Math.hypot(...support.point), 2);
     expect(result.events.map(({ type }) => type)).toContain('landed');
+  });
+
+  it('citySkater_tracksTheCurrentRenderedSupportNormal', () => {
+    const ramp = world.surfaces.find((surface) => surface.type === 'ramp');
+    const support = querySupport(world, ramp.centerline[Math.floor(ramp.centerline.length / 2)], {
+      maxDrop: 1,
+      maxRise: 1,
+      previousSurfaceId: ramp.id,
+    });
+    const state = {
+      ...createCitySkater(world),
+      position: support.point,
+      forward: support.tangent,
+      speed: 0,
+      mode: 'grounded',
+      surfaceId: ramp.id,
+      supportNormal: [0, 1, 0],
+    };
+    const result = stepSkaterOnCity(state, createNeutralInputFrame(), 1 / 60, world);
+    const currentSupport = querySupport(world, result.state.position, {
+      maxDrop: 0.02,
+      maxRise: 0.02,
+      previousSurfaceId: ramp.id,
+    });
+
+    expect(currentSupport.surfaceId).toBe(ramp.id);
+    expect(result.state.supportNormal).toEqual(currentSupport.surfaceNormal);
   });
 
   it('citySkater_doesNotJumpAgainWithoutGroundOrCoyoteTime', () => {

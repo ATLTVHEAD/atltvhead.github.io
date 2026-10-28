@@ -98,6 +98,7 @@ export function createCitySkater(world, spawnId) {
     spawnId: spawn.id,
     position,
     forward: safeForward,
+    supportNormal: support?.surfaceNormal ?? gravityUp,
     speed: 0,
     mode: 'grounded',
     surfaceId: support?.surfaceId ?? spawn.surfaceId ?? 'terrain',
@@ -165,6 +166,9 @@ export function stepSkaterOnCity(state, rawInput, deltaSeconds, world, tuningOve
     ...state,
     position: [...state.position],
     forward: [...state.forward],
+    supportNormal: finiteVector(state.supportNormal)
+      ? [...state.supportNormal]
+      : normalize3(state.position),
     tick: nextTick,
   };
   const events = [];
@@ -208,6 +212,7 @@ export function stepSkaterOnCity(state, rawInput, deltaSeconds, world, tuningOve
     if (grounded && currentSupport) {
       nextState.position = [...currentSupport.point];
       nextState.surfaceId = currentSupport.surfaceId;
+      nextState.supportNormal = [...currentSupport.surfaceNormal];
       nextState.groundRadius = Math.hypot(...currentSupport.point);
     }
     makeJump(nextState, events, tuning, { surfaceId: nextState.surfaceId });
@@ -258,6 +263,7 @@ export function stepSkaterOnCity(state, rawInput, deltaSeconds, world, tuningOve
     if (support) {
       nextState.position = support.point;
       nextState.surfaceId = support.surfaceId;
+      nextState.supportNormal = [...support.surfaceNormal];
       nextState.mode = 'grounded';
       nextState.groundRadius = Math.hypot(...support.point);
       nextState.verticalSpeed = 0;
@@ -301,6 +307,7 @@ export function stepSkaterOnCity(state, rawInput, deltaSeconds, world, tuningOve
   if (crossedSupport) {
     nextState.position = landingSupport.point;
     nextState.surfaceId = landingSupport.surfaceId;
+    nextState.supportNormal = [...landingSupport.surfaceNormal];
     nextState.mode = 'grounded';
     nextState.groundRadius = Math.hypot(...landingSupport.point);
     nextState.verticalSpeed = 0;

@@ -83,6 +83,24 @@ test('cityWorld_isMountedAndRenderedOnGamePage', async ({ page }) => {
     }
 
     game.renderer.render(game.scene, game.camera);
+    const supportNormal = new window.THREE.Vector3(...game.skaterState.supportNormal).normalize();
+    const supportPoint = new window.THREE.Vector3(...game.skaterState.position);
+    const avatarUp = new window.THREE.Vector3(0, 1, 0)
+      .applyQuaternion(game.avatar.quaternion)
+      .normalize();
+    let avatarSupportGap = Infinity;
+    game.avatar.traverse((object) => {
+      const positions = object.geometry?.attributes?.position;
+      if (!object.isMesh || !positions) return;
+      const vertex = new window.THREE.Vector3();
+      for (let index = 0; index < positions.count; index += 1) {
+        vertex.fromBufferAttribute(positions, index).applyMatrix4(object.matrixWorld);
+        avatarSupportGap = Math.min(
+          avatarSupportGap,
+          vertex.sub(supportPoint).dot(supportNormal),
+        );
+      }
+    });
     const cityPoints = [
       ...game.layout.surfaces.flatMap((surface) => surface.centerline),
       ...game.layout.buildings.map((building) => building.position),
@@ -101,9 +119,8 @@ test('cityWorld_isMountedAndRenderedOnGamePage', async ({ page }) => {
       worldDescriptor: game.world?.descriptor,
       skaterMode: game.skaterState?.mode,
       skaterRadius: game.skaterState?.position && Math.hypot(...game.skaterState.position),
-      avatarSkaterDistance: game.skaterState?.position
-        ? game.avatar.position.distanceTo(new window.THREE.Vector3(...game.skaterState.position))
-        : null,
+      avatarUpAlignment: avatarUp.dot(supportNormal),
+      avatarSupportGap,
       firstStreetVertexCount: game.world?.surfaces[0].vertices.length,
       renderedStreetVertexCount: game.city.getObjectByName(`street-${game.world?.surfaces[0].id}`)
         ?.geometry.attributes.position.count,
@@ -125,7 +142,9 @@ test('cityWorld_isMountedAndRenderedOnGamePage', async ({ page }) => {
   expect(result.worldDescriptor).toMatchObject({ version: 1, radius: 16, tuningVersion: 1 });
   expect(result.skaterMode).toBe('grounded');
   expect(result.skaterRadius).toBeGreaterThan(16);
-  expect(result.avatarSkaterDistance).toBeLessThan(1e-6);
+  expect(result.avatarUpAlignment).toBeGreaterThan(0.999);
+  expect(result.avatarSupportGap).toBeGreaterThan(-0.001);
+  expect(result.avatarSupportGap).toBeLessThan(0.01);
   expect(result.renderedStreetVertexCount).toBe(result.firstStreetVertexCount);
   expect(result.canvasWidth).toBeGreaterThan(0);
   expect(result.canvasHeight).toBeGreaterThan(0);

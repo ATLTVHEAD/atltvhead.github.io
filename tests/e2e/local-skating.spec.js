@@ -1,4 +1,7 @@
+import { mkdirSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
+
+mkdirSync('artifacts/skate-progress', { recursive: true });
 
 test('localSkating_joinMovesJumpsAndLeavesWithoutABackend', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -28,9 +31,15 @@ test('localSkating_joinMovesJumpsAndLeavesWithoutABackend', async ({ page }) => 
     const camera = window.skateGame.camera.position.toArray();
     return Math.hypot(...camera.map((value, axis) => value - initial[axis])) > 0.2;
   }, playerFrame.cameraPosition);
-  await page.waitForFunction(() => window.skateGame.avatar.position.distanceTo(
-    new window.THREE.Vector3(...window.skateGame.skaterState.position),
-  ) < 1e-4);
+  await page.waitForFunction(() => {
+    const { THREE, skateGame } = window;
+    const state = skateGame.skaterState;
+    if (state.mode !== 'grounded') return false;
+    const supportNormal = new THREE.Vector3(...state.supportNormal).normalize();
+    const expectedPosition = new THREE.Vector3(...state.position)
+      .addScaledVector(supportNormal, skateGame.avatar.userData.supportOffset);
+    return skateGame.avatar.position.distanceTo(expectedPosition) < 1e-4;
+  });
 
   await page.keyboard.press('Space');
   await page.waitForFunction(() => window.skateGame.lastEvents.some((event) => event.type === 'jumped'));
@@ -54,6 +63,15 @@ test('localSkating_cameraResizePreservesHeadingInPortraitAndLandscape', async ({
     const size = window.skateGame.renderer.getSize(new window.THREE.Vector2());
     return Math.round(size.x) === 390 && Math.round(size.y) === 844;
   }, null, { timeout: 5_000 });
+  await page.waitForFunction(() => {
+    const { THREE, skateGame } = window;
+    const avatarCenter = skateGame.avatar.position.clone().add(
+      new THREE.Vector3(0, 2.1, 0).applyQuaternion(skateGame.avatar.quaternion),
+    );
+    const projected = avatarCenter.project(skateGame.camera);
+    return Math.abs(projected.x) < 0.95 && Math.abs(projected.y) < 0.95
+      && projected.z >= -1 && projected.z <= 1;
+  }, null, { timeout: 5_000 });
   expect(await page.evaluate(() => window.skateGame.skaterState.forward)).toEqual(heading);
   await page.screenshot({ path: 'artifacts/skate-progress/task-6-playable-portrait.png' });
 
@@ -62,7 +80,90 @@ test('localSkating_cameraResizePreservesHeadingInPortraitAndLandscape', async ({
     const size = window.skateGame.renderer.getSize(new window.THREE.Vector2());
     return Math.round(size.x) === 1280 && Math.round(size.y) === 800;
   }, null, { timeout: 5_000 });
+  await page.waitForFunction(() => {
+    const { THREE, skateGame } = window;
+    const avatarCenter = skateGame.avatar.position.clone().add(
+      new THREE.Vector3(0, 2.1, 0).applyQuaternion(skateGame.avatar.quaternion),
+    );
+    const projected = avatarCenter.project(skateGame.camera);
+    return Math.abs(projected.x) < 0.95 && Math.abs(projected.y) < 0.95
+      && projected.z >= -1 && projected.z <= 1;
+  }, null, { timeout: 5_000 });
   expect(await page.evaluate(() => window.skateGame.skaterState.forward)).toEqual(heading);
+});
+
+test('localSkating_followCameraFramesTheCompiledRouteWithoutBuildingOcclusion', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto('/skate.html');
+  const routeVisibility = await page.evaluate(async () => {
+    const { updateFollowCamera } = await import('/js/game/render/follow-camera.js');
+    const { querySupport, sweepSkater } = await import('/js/game/world/city-queries.js');
+    const { normalize3, projectToTangent } = await import('/js/game/core/planet-math.js');
+    const { world } = window.skateGame;
+    const camera = new window.THREE.PerspectiveCamera(
+      44,
+      1280 / 800,
+      0.1,
+      world.radius * 12,
+    );
+    const neutralCamera = { yawDelta: 0, pitchDelta: 0, zoomDelta: 0 };
+    let cameraState = null;
+    let visibleSamples = 0;
+    let outOfFrameSamples = 0;
+    let buildingOcclusions = 0;
+
+    for (const surface of world.surfaces) {
+      for (let index = 0; index < surface.centerline.length; index += 1) {
+        const position = surface.centerline[index];
+        const before = surface.centerline[Math.max(0, index - 1)];
+        const after = surface.centerline[Math.min(surface.centerline.length - 1, index + 1)];
+        const support = querySupport(world, position, {
+          maxDrop: 1,
+          maxRise: 1,
+          previousSurfaceId: surface.id,
+        });
+        const contactPoint = support?.point ?? position;
+        const supportUp = support?.surfaceNormal ?? normalize3(contactPoint);
+        const forward = normalize3(projectToTangent(
+          after.map((value, axis) => value - before[axis]),
+          normalize3(position),
+        ));
+        cameraState = updateFollowCamera(cameraState, {
+          position: contactPoint,
+          forward,
+          speed: 6,
+          mode: 'grounded',
+          surfaceId: surface.id,
+        }, neutralCamera, world, 1 / 60, { width: 1280, height: 800 });
+        camera.position.set(...cameraState.position);
+        camera.up.set(...cameraState.up);
+        camera.lookAt(new window.THREE.Vector3(...cameraState.target));
+        camera.updateProjectionMatrix();
+        camera.updateMatrixWorld(true);
+
+        const skaterCenter = new window.THREE.Vector3(...contactPoint)
+          .add(new window.THREE.Vector3(...supportUp).multiplyScalar(2.1));
+        const projected = skaterCenter.project(camera);
+        const visible = projected.z >= -1 && projected.z <= 1
+          && Math.abs(projected.x) < 0.95
+          && Math.abs(projected.y) < 0.95;
+        visibleSamples += Number(visible);
+        outOfFrameSamples += Number(!visible);
+        buildingOcclusions += Number(sweepSkater(
+          world,
+          cameraState.target,
+          cameraState.position,
+          0.18,
+        ).blocked);
+      }
+    }
+
+    return { visibleSamples, outOfFrameSamples, buildingOcclusions };
+  });
+
+  expect(routeVisibility.visibleSamples).toBeGreaterThan(100);
+  expect(routeVisibility.outOfFrameSamples).toBe(0);
+  expect(routeVisibility.buildingOcclusions).toBe(0);
 });
 
 test('localSkating_previewOrbitReturnsToFollowCameraInputWhenPlaying', async ({ page }) => {
