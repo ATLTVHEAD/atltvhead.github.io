@@ -2,6 +2,20 @@
 
 Automated browser coverage is useful evidence, but it does not replace the hands-on route, comfort, and physical-device checks below. Do not mark a manual row complete based only on Playwright.
 
+## Current build review checklist
+
+Start the local server with `npm run dev` and open `http://localhost:8000/skate.html`. The server must remain running; the game assets load locally before Join becomes available.
+
+- [ ] Confirm the preview loads, choose a color/cap, join, and use W/A/S/D and Space to move and jump. Leave and rejoin; confirm the session resets.
+- [ ] Open Controls during play. Check that the game pauses, the active-device hint is visible, Escape returns focus to the game, and movement does not continue behind the panel.
+- [ ] With a physical controller connected, expand Controller diagnostics. Record browser, controller ID, mapping, axis/button counts, selected controller, and whether values change when sticks/buttons move. Verify left stick and Jump; note any drift or missed inputs.
+- [ ] If the browser exposes a nonstandard controller, select it and follow Calibrate, releasing controls between prompts. Test Jump and movement after returning to play. Reset mapping or reload to clear the session-only mapping.
+- [ ] If no gamepad is exposed, check the no-device guidance and Steam Input's gamepad versus desktop configuration. Compare Windows Firefox and Chrome; record results rather than assuming either browser fixes hardware mapping.
+- [ ] On a phone, try touch movement and Jump in portrait and landscape, then background and reopen the page. Record device/browser, visibility, focus and performance.
+- [ ] Check offline/local loading and Retry after an interrupted asset request if you can reproduce one. Do not mistake the locally loaded asset library for finished city art: the city still uses the existing blockout.
+
+Automatic launches/grinds, finalized graffiti, the rigged character, and comic city art are later work and are not acceptance checks for this build. Hardware, full-lap and visual acceptance remain pending until actually performed.
+
 | Device / browser | Input | Viewport | Status | Notes / capture |
 | --- | --- | --- | --- | --- |
 | Chromium / Playwright | Keyboard + mouse | 1280 × 800 | Automated pass | Join, move, jump/land, follow camera, leave, WebGL recovery; `artifacts/skate-progress/task-6-playable-desktop.png` |

@@ -75,6 +75,7 @@ test('cityWorld_rendersCurvedStreetsRampsAndRails', async ({ page }) => {
 
 test('cityWorld_isMountedAndRenderedOnGamePage', async ({ page }) => {
   await page.goto('/skate.html');
+  await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'ready');
 
   const result = await page.evaluate(() => {
     const game = window.skateGame;

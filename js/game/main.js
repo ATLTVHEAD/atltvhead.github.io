@@ -12,6 +12,7 @@ import { createInputRouter } from './input/input-router.js';
 import { createGameSession } from './runtime/game-session.js';
 import { bindInputLifecycle } from './runtime/input-lifecycle.js';
 import { bindControlsPanel } from './ui/controls-panel.js';
+import { loadGameAssets } from './render/game-assets.js';
 import { applyAvatarPose } from './render/avatar-pose.js';
 import {
   createFollowCameraState,
@@ -53,7 +54,7 @@ function clearBootError(root) {
   if (errorBox) errorBox.hidden = true;
 }
 
-export function startSkateGame({ root, THREE }) {
+export function startSkateGame({ root, THREE, assets = null }) {
   if (!root) throw new Error('A game root element is required.');
   if (!THREE) throw new Error('The local Three.js library is required.');
 
@@ -89,6 +90,7 @@ export function startSkateGame({ root, THREE }) {
   }
 
   try {
+    if (assets) registerCleanup(() => assets.dispose());
     root.dataset.gameState = 'loading';
     const layout = createCityLayout({
       radius: WORLD_DESCRIPTOR.radius,
@@ -294,6 +296,7 @@ export function startSkateGame({ root, THREE }) {
       if (session) session.dispose();
       else input?.dispose();
     });
+
     session = createGameSession({
       initialState: initialSkaterState,
       resetState: () => createCitySkater(world),
@@ -421,6 +424,7 @@ export function startSkateGame({ root, THREE }) {
       scene,
       camera,
       renderer,
+      assets,
       controls,
       session,
       get skaterState() { return session.getState().skaterState; },
@@ -443,21 +447,43 @@ export function startSkateGame({ root, THREE }) {
 const root = document.querySelector('#game-root');
 if (root) {
   let activeGame = null;
+  let bootController = null;
+  let bootGeneration = 0;
   const retryButton = root.querySelector('#retry-game');
+  const joinButton = root.querySelector('#join-city');
+  const status = root.querySelector('#connection-state');
 
-  const boot = () => {
+  const boot = async () => {
+    const generation = ++bootGeneration;
+    bootController?.abort();
+    bootController = new AbortController();
+    const signal = bootController.signal;
     activeGame?.dispose();
     activeGame = null;
+    window.skateGame = null;
+    if (joinButton) joinButton.disabled = true;
     root.dataset.gameState = 'loading';
     clearBootError(root);
+    if (status) status.textContent = 'Loading local game assets…';
+    let assets = null;
     try {
-      activeGame = startSkateGame({ root, THREE: window.THREE });
+      const response = await fetch('assets/game/manifest.json', { signal });
+      if (!response.ok) throw new Error(`Asset manifest failed: ${response.status}`);
+      const manifest = await response.json();
+      assets = await loadGameAssets({ THREE: window.THREE, manifest, signal,
+        onProgress: ({ loaded, total }) => { if (status) status.textContent = `Loading local game assets ${loaded}/${total}…`; } });
+      if (generation !== bootGeneration || signal.aborted) { assets.dispose(); return; }
+      activeGame = startSkateGame({ root, THREE: window.THREE, assets });
       window.skateGame = activeGame;
+      if (joinButton) joinButton.disabled = false;
+      if (status) status.textContent = 'Offline preview';
     } catch (error) {
+      assets?.dispose();
+      if (generation !== bootGeneration || signal.aborted) return;
       window.skateGame = null;
       const message = /webgl|context|renderer/i.test(error?.message ?? '')
         ? 'WebGL is unavailable. Enable hardware acceleration or try a browser with 3D graphics support.'
-        : 'The game could not start. Retry to try again.';
+        : 'Game assets or the game could not load. Retry to try again.';
       showBootError(root, message);
     }
   };

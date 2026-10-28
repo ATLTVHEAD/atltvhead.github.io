@@ -95,6 +95,7 @@ test('localSkating_cameraResizePreservesHeadingInPortraitAndLandscape', async ({
 test('localSkating_followCameraFramesTheCompiledRouteWithoutBuildingOcclusion', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/skate.html');
+  await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'ready');
   const routeVisibility = await page.evaluate(async () => {
     const { updateFollowCamera } = await import('/js/game/render/follow-camera.js');
     const { querySupport, sweepSkater } = await import('/js/game/world/city-queries.js');
@@ -169,6 +170,7 @@ test('localSkating_followCameraFramesTheCompiledRouteWithoutBuildingOcclusion', 
 test('localSkating_previewOrbitReturnsToFollowCameraInputWhenPlaying', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/skate.html');
+  await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'ready');
   const previewCamera = await page.evaluate(() => window.skateGame.camera.position.toArray());
   await page.mouse.move(820, 350);
   await page.mouse.down();
@@ -209,6 +211,7 @@ test('localSkating_webglFailureShowsVisibleRecoveryHelp', async ({ page }) => {
 
 test('localSkating_disposeReleasesDetachedAccessoryGeometry', async ({ page }) => {
   await page.goto('/skate.html');
+  await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'ready');
   const cap = page.getByLabel('Cap accessory');
   await cap.check();
   await cap.uncheck();
@@ -226,6 +229,7 @@ test('localSkating_disposeReleasesDetachedAccessoryGeometry', async ({ page }) =
 
 test('localSkating_failedLateBootRollsBackAlreadyCreatedRenderer', async ({ page }) => {
   await page.goto('/skate.html');
+  await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'ready');
   const diagnostics = await page.evaluate(async () => {
     const game = window.skateGame;
     game.dispose();
@@ -244,13 +248,16 @@ test('localSkating_failedLateBootRollsBackAlreadyCreatedRenderer', async ({ page
       }
     };
     const previousResizeObserver = window.ResizeObserver;
+    const { loadGameAssets } = await import('/js/game/render/game-assets.js');
+    const manifest = await (await fetch('/assets/game/manifest.json')).json();
+    const assets = await loadGameAssets({ THREE: window.THREE, manifest });
     window.ResizeObserver = class FailingResizeObserver {
       constructor() { throw new Error('forced late boot failure'); }
     };
     const { startSkateGame } = await import('/js/game/main.js');
     let failure = null;
     try {
-      startSkateGame({ root: document.querySelector('#game-root'), THREE: window.THREE });
+      startSkateGame({ root: document.querySelector('#game-root'), THREE: window.THREE, assets });
     } catch (error) {
       failure = error.message;
       // The browser bootstrap presents this error; this test checks its rollback.
