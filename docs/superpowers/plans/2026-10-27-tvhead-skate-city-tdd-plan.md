@@ -175,33 +175,33 @@ Modify `package.json`, `index.html`, and `portfolio.html` only for test/dev scri
 
 **Outcome:** One compact character can be rendered for the local guest and reused for all remote skaters, with color/accessories changed at runtime.
 
-**Files:** Create `js/game/render/avatar.js`, `js/game/ui/customization.js`, and `tests/unit/avatar.test.js`, `tests/e2e/customization.spec.js`. Inspect `atltvhead.obj` as a possible source; it is currently about 4.7 MB and must not be shipped raw without passing the model budget.
+**Files:** Create `js/game/render/avatar.js`, `js/game/ui/customization.js`, and `tests/unit/avatar.test.js`, `tests/e2e/customization.spec.js`; modify `js/game/main.js` to mount the local guest and wire its live preview. Inspected `atltvhead.obj` (4.74 MB, 20,250 vertices, 40,058 faces); use primitives rather than shipping the over-budget raw model.
 
 **Interfaces:** `Appearance` is `{ color: '#RRGGBB', accessoryIds: string[] }`. The supported accessory IDs come from one exported `AVATAR_ACCESSORIES` catalog.
 
-- [ ] **Function M3-F1 — `createTvheadAvatar(THREE, appearance, geometryCache) -> THREE.Group`**
-  - [ ] RED: `createTvheadAvatar_hasTvHeadBodyAndRollerblades`, `createTvheadAvatar_staysWithinTriangleBudget`, and `createTvheadAvatar_reusesGeometry` fail before implementation.
-  - [ ] Implement a compact low-poly avatar using the cache; if the existing OBJ exceeds budget, use a decimated source or Three.js primitives.
-  - [ ] GREEN: focused tests and full unit suite pass; base avatar is <=5,000 triangles.
-  - [ ] Helper `countGeometryTriangles`: test indexed and non-indexed meshes.
-  - [ ] Helper `buildTvHeadGeometry`: test low-poly TV-head geometry and bounds.
-  - [ ] Helper `buildBodyGeometry`: test low-poly body geometry and bounds.
-  - [ ] Helper `buildRollerbladeGeometry`: test left/right blade geometry and bounds.
-- [ ] **Function M3-F2 — `setAvatarAppearance(avatar, appearance) -> void`**
-  - [ ] RED: `setAvatarAppearance_appliesColorAndAccessories`, `setAvatarAppearance_rejectsUnknownAccessory`, and `setAvatarAppearance_doesNotLeakMaterialsBetweenPlayers` fail before implementation.
-  - [ ] Implement appearance updates with per-player materials and shared geometry; all supported accessories together remain <=7,500 triangles.
-  - [ ] GREEN: focused tests and full unit suite pass.
-  - [ ] Helper `isAccessoryId`: test every supported ID and an unknown ID.
-  - [ ] Helper `cloneMaterialsForAvatar`: test per-player color isolation while geometry remains shared.
-- [ ] **Function M3-F3 — `readCustomizationForm(form) -> Appearance`**
-  - [ ] RED: `readCustomizationForm_parsesValidValues`, `readCustomizationForm_usesDefaults`, and `readCustomizationForm_rejectsInvalidValues` fail before implementation.
-  - [ ] Implement runtime-only color/accessory parsing and UI wiring.
-  - [ ] GREEN: focused tests and full unit suite pass.
-  - [ ] Helper `normalizeColor`: test valid hex, uppercase normalization, and fallback for invalid input.
-  - [ ] Helper `filterAccessoryIds`: test allowed, duplicate, and unknown IDs.
-- [ ] Run `npm run test:unit -- tests/unit/avatar.test.js` and `npm run test:e2e -- tests/e2e/customization.spec.js`; record RED/GREEN for each function.
-- [ ] Add a browser check that a guest can change color/accessories before joining and see the same appearance in the city. Verify reload starts with defaults rather than persisted customization.
-- [ ] Commit: `feat: add low-poly customizable tvhead avatar`.
+- [x] **Function M3-F1 — `createTvheadAvatar(THREE, appearance, geometryCache) -> THREE.Group`**
+  - [x] RED: `createTvheadAvatar_hasTvHeadBodyAndRollerblades`, `createTvheadAvatar_staysWithinTriangleBudget`, and `createTvheadAvatar_reusesGeometry` failed before implementation.
+  - [x] Implement a compact low-poly avatar using the cache; the existing OBJ exceeds the budget, so use Three.js primitives.
+  - [x] GREEN: focused tests and full unit suite pass; base avatar is <=5,000 triangles.
+  - [x] Helper `countGeometryTriangles`: test indexed and non-indexed meshes.
+  - [x] Helper `buildTvHeadGeometry`: test low-poly TV-head geometry and bounds.
+  - [x] Helper `buildBodyGeometry`: test low-poly body geometry and bounds.
+  - [x] Helper `buildRollerbladeGeometry`: test left/right blade geometry and bounds.
+- [x] **Function M3-F2 — `setAvatarAppearance(avatar, appearance) -> void`**
+  - [x] RED: `setAvatarAppearance_appliesColorAndAccessories`, `setAvatarAppearance_rejectsUnknownAccessory`, and `setAvatarAppearance_doesNotLeakMaterialsBetweenPlayers` failed before implementation.
+  - [x] Implement appearance updates with per-player materials and shared geometry; all supported accessories together remain <=7,500 triangles.
+  - [x] GREEN: focused tests and full unit suite pass.
+  - [x] Helper `isAccessoryId`: test every supported ID and an unknown ID.
+  - [x] Helper `cloneMaterialsForAvatar`: test per-player color isolation while geometry remains shared.
+- [x] **Function M3-F3 — `readCustomizationForm(form) -> Appearance`**
+  - [x] RED: `readCustomizationForm_parsesValidValues`, `readCustomizationForm_usesDefaults`, and `readCustomizationForm_rejectsInvalidValues` failed before implementation.
+  - [x] Implement runtime-only color/accessory parsing and UI wiring.
+  - [x] GREEN: focused tests and full unit suite pass.
+  - [x] Helper `normalizeColor`: test valid hex, uppercase normalization, and fallback for invalid input.
+  - [x] Helper `filterAccessoryIds`: test allowed, duplicate, and unknown IDs.
+- [x] Run `npm run test:unit -- tests/unit/avatar.test.js` and `npm run test:e2e -- tests/e2e/customization.spec.js`; record RED/GREEN for each function.
+- [x] Add a browser check that a guest can change color/accessories before joining and see the same appearance in the city. Verify reload starts with defaults rather than persisted customization.
+- [x] Commit: `feat: add low-poly customizable tvhead avatar`.
 
 ## Task 5 — Milestone 4: Trick Flow and Score Rules
 

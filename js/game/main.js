@@ -1,5 +1,8 @@
-import { createCityLayout } from './world/city-layout.js';
+import { createCityLayout, findRideableSurface } from './world/city-layout.js';
 import { createCityScene } from './render/city-scene.js';
+import { createTvheadAvatar, setAvatarAppearance } from './render/avatar.js';
+import { bindCustomizationForm, readCustomizationForm } from './ui/customization.js';
+import { makeSurfaceFrame } from './core/planet-math.js';
 
 const CITY_RADIUS = 16;
 const CITY_SEED = 2026;
@@ -30,6 +33,33 @@ export function startSkateGame({ root, THREE }) {
 
   const layout = createCityLayout({ radius: CITY_RADIUS, seed: CITY_SEED });
   const city = createCityScene(THREE, layout);
+  const geometryCache = new Map();
+  const customizationForm = root.querySelector('#customization-form');
+  const avatar = createTvheadAvatar(
+    THREE,
+    readCustomizationForm(customizationForm),
+    geometryCache,
+  );
+  const spawnSurface = layout.surfaces
+    .filter((surface) => surface.type === 'street')
+    .reduce((best, surface) => {
+      const midpointIndex = Math.floor(surface.centerline.length / 2);
+      const bestDepth = best.centerline[Math.floor(best.centerline.length / 2)][2];
+      return surface.centerline[midpointIndex][2] > bestDepth ? surface : best;
+    });
+  const spawnPoint = spawnSurface.centerline[Math.floor(spawnSurface.centerline.length / 2)];
+  const spawnHit = findRideableSurface(layout, spawnPoint);
+  if (spawnHit) {
+    const frame = makeSurfaceFrame(spawnHit.normal, spawnHit.forward);
+    const up = new THREE.Vector3(...frame.up);
+    const right = new THREE.Vector3(...frame.right).negate();
+    const forward = new THREE.Vector3(...frame.forward);
+    const orientation = new THREE.Matrix4().makeBasis(right, up, forward);
+    avatar.quaternion.setFromRotationMatrix(orientation);
+    avatar.position.copy(new THREE.Vector3(...spawnHit.position)).addScaledVector(up, 0.025);
+  }
+  city.add(avatar);
+
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#11111c');
   scene.add(city);
@@ -76,6 +106,13 @@ export function startSkateGame({ root, THREE }) {
     if (!disposed) renderer.render(scene, camera);
   }
 
+  const customizationBinding = customizationForm
+    ? bindCustomizationForm(customizationForm, (appearance) => {
+      setAvatarAppearance(avatar, appearance);
+      render();
+    })
+    : null;
+
   function resize() {
     if (disposed) return;
     const width = Math.max(1, root.clientWidth);
@@ -107,6 +144,8 @@ export function startSkateGame({ root, THREE }) {
 
   return {
     city,
+    avatar,
+    geometryCache,
     layout,
     scene,
     camera,
@@ -118,8 +157,10 @@ export function startSkateGame({ root, THREE }) {
       if (!resizeObserver) window.removeEventListener('resize', resize);
       controls?.removeEventListener('change', render);
       controls?.dispose();
+      customizationBinding?.dispose();
       scene.remove(city);
       disposeCityResources(city);
+      geometryCache.clear();
       renderer.dispose();
       root.dataset.gameState = 'disposed';
     },
