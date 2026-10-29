@@ -21,6 +21,13 @@ do not implement their old spherical-layout assumptions unchanged. User requeste
 documentation only in this session, then a stop for **GPT Luna 6** to handle implementation.
 Written-spec review and the re-scoped implementation-plan gates remain open.
 
+**Authoritative replacement tasking (Sol → Luna):**
+`docs/superpowers/plans/2026-10-29-planar-wraparound-city-plan.md` now defines P1–P8
+to replace unfinished Task4 and a continuation table with exact overrides for Tasks5–12.
+Read that tasking first: its explicit planar substitutions take precedence over the
+spherical-world instructions below. Completed Tasks1–3 and the scale approval remain
+complete. User review of the new tasking is pending; no new implementation is claimed.
+
 **Approved playtest reprioritization (2026-10-28):** Steam Controller-specific acceptance is deferred; other gamepads have user-reported movement/Jump/camera success. Complete the bounded wall-fall/escape correction and visible Kenney building integration, then stop for a user playtest before new mechanics. Evidence, limits and the review checklist are in [`../../reviews/2026-10-28-collision-and-visible-assets-checkpoint.md`](../../reviews/2026-10-28-collision-and-visible-assets-checkpoint.md). This checkpoint is not completion of the full authored-route/tag-target Task 4 or waiver of the Task 5 mechanics review.
 
 ## Global Constraints

@@ -5,9 +5,11 @@ Date: 2026-10-29
 Status: **draft — awaiting user review (hard gate)**.
 
 Handoff (2026-10-29): user requested this documentation revision, then a stop so
-**GPT Luna 6** can handle implementation. No planar implementation or re-scoped
-implementation plan has been produced. The previous uniform-grid proposal has been
-replaced by the irregular, building-shaped route requirements in §2.
+**GPT Luna 6** can handle implementation. The user subsequently asked Sol to create
+the tasking before switching to Luna. The written plan is now
+`docs/superpowers/plans/2026-10-29-planar-wraparound-city-plan.md` (awaiting review);
+no planar implementation has been produced. The previous uniform-grid proposal has
+been replaced by the irregular, building-shaped route requirements in §2.
 
 Amends `docs/superpowers/specs/2026-10-28-skate-city-playability-and-comic-art-design.md`.
 That spec stays approved for Tasks 1–3, the menu/globe, and everything outside post-join
@@ -102,7 +104,8 @@ The play world is a **torus**: positions wrap on both horizontal axes.
 
 - The skater position is wrapped into `[0, W) × [0, D)` every step (after integration).
 - Constant up `[0, 1, 0]`. Terrain is the Y = 0 plane (replaces the radial
-  `groundRadius` fallback). `groundRadius` becomes `groundHeight = 0`.
+  `groundRadius` fallback). `groundRadius` becomes `groundHeight`, the current support
+  height (0 on terrain, 0.025 on ordinary roads, profiled on ramps).
 - **Seam correctness:** max per-step travel is `maxSpeed × maxDeltaSeconds = 12 × 0.1 =
   1.2` units, far less than `W / 2 = 128`. So nearest-image logic is exact:
   - Support queries: probe the skater's own cell plus, when within one street-width of a
@@ -114,6 +117,10 @@ The play world is a **torus**: positions wrap on both horizontal axes.
     segment's inflated bounds). The existing slab segment-vs-AABB test in
     `city-queries.js` is extracted and shared; the response is unchanged
     (`collisionResponse: 'stop'` — halt, never bail on a wall).
+- Planning clarification: canonical skater positions wrap; authored seam-crossing
+  geometry may use continuous local images (for example X=252…260), with explicit
+  whole-tile translations in route links. Support/sweep results stay in the query
+  caller's image; wrap only the skater's final state, not camera boom endpoints.
 - `SKATER_PHYSICS` (skater-simulation.js) is reused unchanged; the planar skater reuses the
   city tuning values: coastingDrag 0.6, coyoteTimeMs 100, jumpBufferMs 120, bailDurationMs
   500, bodyRadius 0.25, collisionResponse 'stop'.
@@ -132,8 +139,10 @@ New modules:
 
 - **Nine static tile copies.** The play scene contains the city tile at offsets
   `(i·W, j·D)` for `i, j ∈ {−1, 0, 1}`. The skater is always inside tile (0, 0) (position
-  is wrapped), so the 3×3 array always covers the frustum at any camera distance — no
-  per-frame reparenting, no visible seam.
+  is wrapped). Planning clarification: a finite 3×3 array does not cover a far plane
+  of 512 by itself. Play uses matching background/ground fog from distance 160 to full
+  opacity at 208, before any outer repeated-tile edge; menu rendering is unchanged.
+  Verify wide-aspect and seam/corner views. No per-frame tile reparenting or visible seam.
 - **Shared geometry, per-tile scenes.** Each tile is built once; the 9 copies share
   `BufferGeometry` (mesh clones, not geometry clones). Imported GLB assets are retained
   9× (once per tile): `game-assets.js` `retain(id)` returns a fresh refcounted scene per
@@ -143,15 +152,19 @@ New modules:
 - **Per-material static merge.** Within a tile, static surfaces are merged per material
   with the vendored r137 `THREE.BufferGeometryUtils.mergeBufferGeometries`
   (`lib/game/BufferGeometryUtils.js`, already loaded by skate.html): asphalt, ramp, rail,
-  ground, plaza, and building facades group into ≈ 6 static meshes per tile
-  (≈ 54 across the 9 tiles).
+  ground, plaza, and compatible building facades are grouped by actual material and
+  attribute compatibility. The earlier ≈6 static meshes/tile is an estimate, not an
+  acceptance assumption; measure actual imported material/mesh submissions.
 - **Dynamic attachments.** Graffiti tags, target markers, and similar per-frame or
   per-interaction objects use `planarCity.attach(object)` / `detach(object)`: the API
   replicates the child into all 9 tiles with the per-tile offset so a tag placed near the
-  seam is visible from every side.
+  seam is visible from every side. Repeated attach refreshes changed source transforms
+  and children without accumulating copies; callers refresh after presentation updates.
+  Source resources remain caller-owned; detach all copies before disposing the source.
 - **Draw-call budget** is measured in Task 11: target ≤ 150 draw calls in play mode; if
-  the merged layout exceeds it, the fallback is dropping the merge (with the measurement
-  recorded in the ledger) — not culling, which would reintroduce seam pop.
+  the merged layout exceeds it, record actual measurements and optimize compatible
+  submissions. If meeting it conflicts with required scenery/contact/readability,
+  request a human tradeoff; dropping the merge or hiding neighbors is not acceptance.
 
 ## 5. Camera, avatar, and scene composition
 
@@ -160,13 +173,15 @@ New modules:
   cannot affect the menu's OrbitControls preview. Changes: up is the constant `[0, 1, 0]`
   (no surface-frame math); `keepCameraOutsidePlanet` becomes `keepCameraAboveGround`
   (camera y ≥ 0.45, same clearance value); far plane 512; boom/height/shoulder/tuning
-  values unchanged.
+  values unchanged. Rebase prior camera/target by the skater's whole-tile wrap offset
+  before smoothing, and collision-check the final smoothed boom in its local image.
 - **Avatar pose fix.** `applyAvatarPose` currently falls back to
   `gravityUp = normalize3(state.position)` while airborne — wrong on a plane (that is a
-  horizontal vector). Planar states always carry a finite `supportNormal` (constant
-  `[0, 1, 0]` in air), so the `mode === 'grounded'` gate on `contactNormal` is dropped: a
-  finite `surfaceNormal`/`state.supportNormal` always wins, and the radial fallback is
-  only reached for spherical states (which keep today's behavior exactly).
+  horizontal vector). Planar states carry explicit `gravityUp:[0,1,0]` in every mode
+  and a finite `supportNormal` (constant `[0,1,0]` in air). Use explicit surface override,
+  then grounded support normal, then explicit gravity up, then radial fallback. This
+  preserves spherical airborne behavior even when its state retains an old support normal;
+  simply dropping the grounded gate would not preserve that behavior.
 - **Two scenes, one renderer.** `previewScene` (spherical city — today's `city-scene.js`
   output) and `playScene` (planar city). The renderer is unchanged; the mode machine
   renders the active scene. `playScene` is built at boot so Join is instant; both scenes
@@ -174,7 +189,7 @@ New modules:
 - **Session dispatch.** `game-session.js` stays world-agnostic (it is a mode machine).
   `main.js` holds a mutable `activeWorld` reference; the `step` / `resetState` closures
   dispatch on it. `onJoin` switches `activeWorld` to planar **before** `joinLocal`;
-  `onLeave` switches back to spherical.
+  `onLeave` switches back to spherical **before** `leave`, which resets synchronously.
 - **`window.skateGame`** keeps `world` / `city` / `layout` pointing at the **menu**
   (spherical) world so existing e2e assertions keep passing, and adds
   `playCity` (planar scene), `playWorld` (compiled planar world), `playScene`, and
@@ -187,7 +202,9 @@ New modules:
   `visible-city.spec.js` assertions (8 buildings, radius 32, `kenney-industrial-v1`).
 - Portfolio and 3D Viewer pages.
 - Tasks 1–3 deliverables (input ownership, fixed step, session modal/context-loss),
-  `skater-simulation.js` integrators, `skate-paths.js`.
+  `skater-simulation.js` integrators, and existing `skate-paths.js` signatures/radial
+  behavior. Extend path records with optional constant `gravityUp` for planar samples;
+  current `sampleSkatePath` otherwise derives radial up from position.
 - `asset-placements.js` keeps `BUILDING_SCALE = 17` as the single source;
   `placePlanarCityAssets` is added beside `placeCityAssets`.
 - All input handling (keyboard/mouse, gamepad, touch, router, lifecycle), UI panels,
@@ -250,18 +267,18 @@ screenshot it captures now shows the planar city, which is the intended new beha
 - **Task 4** (steps 1–5 re-scoped to the planar authored content): tag panels on planar
   walls; the launch → rail → landing line on planar streets (rail-0 alley or plaza line);
   the alley loop branch through a building-defined dogleg route. Descriptor version in the step is
-  corrected 2 → 3. `skate-paths.js` is reused as-is (generic path math).
+  corrected 2 → 3. Reuse `skate-paths.js` math with explicit planar `gravityUp` records.
   Replace uniform-grid fixtures with variable-width routes and building-shaped alley
   turns; author launch/rail/landing clearance against those actual boundaries.
-- **Tasks 5, 6, 8:** unchanged in substance; their world records and scene fixtures move
-  to the planar layout.
+- **Tasks 5 and 6:** mechanics/scoring requirements unchanged; world records and scene
+  fixtures move to planar. **Task 8** remains the independent Blender asset task.
 - **Task 7:** tags become planar wall-panel decals, replicated 9× via the
   `planarCity.attach` API.
 - **Task 9:** adds the `applyAvatarPose` fix from §5 and its test.
 - **Task 10:** the visual vignette is a planar street/plaza shot; the
   planet-underside/pole vignette items become menu-only.
 - **Task 11:** measures the 9-copy draw-call and node budget (≤ 150 draw-call target;
-  unmerged fallback allowed with the measurement recorded).
+  measured constraints that conflict require a human tradeoff, not an unmerged waiver).
 - **Task 12:** adds the single-direction lap, seam-invisibility, visible street-width
   variation, and tight building-defined alley-turn acceptance items.
 
@@ -320,8 +337,11 @@ Human gates, in order:
 - [x] Align route/surface interfaces, tests, acceptance evidence, and plan references.
 - [x] Self-review the revision for conflicting uniform-layout requirements.
 - [ ] User review of the revised written spec (existing hard gate remains open).
-- [ ] GPT Luna 6: write/review the re-scoped implementation plan, then implement under
-  the approved execution method and existing mechanics/visual gates.
+- [x] Sol: write the re-scoped implementation tasking at
+  `docs/superpowers/plans/2026-10-29-planar-wraparound-city-plan.md` (user requested).
+- [ ] User reviews the written plan and its planning clarifications.
+- [ ] GPT Luna 6: implement the reviewed tasking inline until the city-review gate,
+  then continue only under the existing mechanics/visual gates and human approvals.
 
-Stop after this documentation update. Do not launch another model, write product code,
-or begin implementation in this session. The user will hand implementation to GPT Luna 6.
+Stop after this tasking/documentation update. Do not launch another model, write product
+code, or begin implementation in this session. The user will hand implementation to GPT Luna 6.
