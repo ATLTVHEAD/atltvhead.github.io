@@ -7,10 +7,40 @@ import { createCityScene } from '../../js/game/render/city-scene.js';
 import { sweepSkater } from '../../js/game/world/city-queries.js';
 import { createCitySkater, stepSkaterOnCity } from '../../js/game/core/city-skater.js';
 import { createNeutralInputFrame } from '../../js/game/input/actions.js';
+import { createTvheadAvatar } from '../../js/game/render/avatar.js';
 
 const manifest = JSON.parse(readFileSync(new URL('../../assets/game/manifest.json', import.meta.url)));
 
 describe('visible asset placement', () => {
+  it('placements_representativeDoorIsTallerThanAdultAvatar', () => {
+    // building-a's front pedestrian door trim: checked against the imported GLB mesh,
+    // not the building's overall bounding box. Coordinates are native glTF Y-up.
+    const bytes = readFileSync(new URL('../../assets/game/kenney-industrial/building-a.glb', import.meta.url));
+    const jsonLength = bytes.readUInt32LE(12);
+    const gltf = JSON.parse(bytes.subarray(20, 20 + jsonLength).toString('utf8'));
+    const binaryOffset = 20 + jsonLength + 8;
+    const accessor = gltf.accessors[gltf.meshes[0].primitives[0].attributes.POSITION];
+    const view = gltf.bufferViews[accessor.bufferView];
+    const start = binaryOffset + (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+    const stride = view.byteStride ?? 12;
+    const doorVertices = [];
+    for (let i = 0; i < accessor.count; i += 1) {
+      const x = bytes.readFloatLE(start + i * stride);
+      const y = bytes.readFloatLE(start + i * stride + 4);
+      const z = bytes.readFloatLE(start + i * stride + 8);
+      if (x > -0.82 && x < -0.73 && y >= 0.029 && y <= 0.241 && z < -0.578 && z > -0.580) {
+        doorVertices.push(y);
+      }
+    }
+    expect(doorVertices.length).toBeGreaterThan(4);
+    const nativeDoorHeight = Math.max(...doorVertices) - Math.min(...doorVertices);
+    expect(nativeDoorHeight).toBeCloseTo(0.21, 2);
+    const layout = createCityLayout({ seed: 2026, assetManifest: manifest });
+    const placement = layout.assetPlacements.find((item) => item.assetId === 'building-a');
+    const avatar = new THREE.Box3().setFromObject(createTvheadAvatar(THREE, { color: '#ff006e' }, new Map()));
+    const avatarHeight = avatar.max.y - avatar.min.y;
+    expect(nativeDoorHeight * placement.scale).toBeGreaterThan(avatarHeight * 1.08);
+  });
   it('skater_canEscapeAnImportedBuildingCorner', () => {
     const layout = createCityLayout({ seed: 2026, assetManifest: manifest });
     const world = compileCityWorld(layout);
@@ -31,7 +61,7 @@ describe('visible asset placement', () => {
   it('placements_fitCanonicalBuildingBoundsAndKeepRoadsClear', () => {
     const layout = createCityLayout({ seed: 2026, assetManifest: manifest });
     const world = compileCityWorld(layout);
-    expect(layout.assetPlacements).toHaveLength(24);
+    expect(layout.assetPlacements).toHaveLength(8);
     expect(new Set(layout.assetPlacements.map((placement) => placement.assetId)).size).toBe(8);
     const assets = {
       retain(id) {

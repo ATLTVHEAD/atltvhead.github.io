@@ -1,13 +1,21 @@
 import { advanceAlongSphere, cross3, makeSurfaceFrame, normalize3 } from '../core/planet-math.js';
 
-// The pack uses a consistent scale across building variants; do not stretch each axis.
-const BUILDING_SCALE = 3;
+// Human-scale correction (user approved 2026-10-28): the avatar is 2.995 world
+// units and represents a 5'10" (1.778 m) adult, so 1 unit ≈ 0.594 m. building-a's
+// pedestrian door measures 0.21 native units in the imported GLB (checked by
+// tests/unit/asset-placements.test.js), so 17x renders it at 3.57 units ≈ 2.12 m,
+// a standard door; building-a's 1.47-unit storeys read as four to five floors.
+// The pack's variants share proportions, so one uniform scale is used; do not
+// stretch each axis or scale variants individually.
+const BUILDING_SCALE = 17;
 const STREET_CLEARANCE = 1.2;
 
 export function placeCityAssets(layout, manifest) {
   const catalog = new Map((manifest?.assets ?? []).map((asset) => [asset.id, asset]));
   const placements = [];
-  const buildings = layout.buildings.map((building, index) => {
+  const buildings = layout.buildings.flatMap((building, index) => {
+    // Full-scale buildings cannot occupy every small-planet route node without overlap.
+    if (Math.floor(index / 2) % 3 !== 0) return [];
     const assetId = `building-${'abcdefgh'[index % 8]}`;
     const source = catalog.get(assetId);
     if (!source?.bounds || !['min', 'max'].every((key) => source.bounds[key]?.length === 3
@@ -32,7 +40,7 @@ export function placeCityAssets(layout, manifest) {
       axes: [normalize3(cross3(normal, forward)), normal, forward],
     };
     placements.push(placement);
-    return { ...building, position, normal, size, placement };
+    return [{ ...building, position, normal, size, placement }];
   });
   return { ...layout, buildings, assetPlacements: placements };
 }
