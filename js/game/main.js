@@ -404,6 +404,8 @@ export function startSkateGame({ root, THREE, assets = null }) {
         playCity.add(avatar);
         camera.far = 512;
         camera.updateProjectionMatrix();
+      } else {
+        controlsPanel?.close();
       }
       canvas.blur?.();
     }

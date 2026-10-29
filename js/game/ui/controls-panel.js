@@ -185,6 +185,7 @@ export function bindControlsPanel({ root, session, input, gamepad, onFocusPlay }
   document.addEventListener('keydown', keydown);
   document.addEventListener('visibilitychange', visibility);
   return {
+    close() { close(); },
     render() {
       const device = input.getActiveDevice();
       hint.textContent = device === 'gamepad' ? 'Gamepad · stick to move · A to jump'

@@ -692,7 +692,7 @@ test('planarCity_tightAlleyTurnsRemainPlayable', async ({ page }) => {
   expect(audit.finalState.mode).toBe('grounded');
 });
 
-test('planarCity_sceneSwitchKeepsCustomizationAndNoStaleJump', async ({ page }) => {
+test('planarCity_leaveFromOpenControlsPreservesCustomizationWithoutStaleJump', async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto('/skate.html');
   await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'ready');
@@ -722,12 +722,12 @@ test('planarCity_sceneSwitchKeepsCustomizationAndNoStaleJump', async ({ page }) 
   await page.getByRole('button', { name: 'Controls', exact: true }).click();
   await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'paused');
   await expect(page.getByRole('dialog', { name: 'Controls' })).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'playing');
-  await page.getByRole('button', { name: 'Leave City' }).click();
+  await page.locator('#leave-city').click();
   await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'ready');
+  await expect(page.getByRole('dialog', { name: 'Controls' })).toBeHidden();
   await page.getByRole('button', { name: 'Join City' }).click();
   await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'playing');
+  await expect(page.getByRole('dialog', { name: 'Controls' })).toBeHidden();
   await page.waitForTimeout(350);
 
   const rejoined = await page.evaluate(() => ({

@@ -29,7 +29,7 @@ The movement captures use a simulated standard gamepad routed through the produc
 P8 adds mounted browser checks for:
 
 - Traversing the narrowing alley and both dogleg turns with movement input; comparing grounded state to `queryPlanarSupport`; checking swept-body clearance with `sweepPlanarSkater`; and reaching the connected exit.
-- Preserving the selected color and cap through Controls → Leave → Join, while confirming a queued/held Jump does not fire in the new play session.
+- Leaving with Controls still open closes Help without resuming the old session; the selected color and cap persist through Leave → Join, and the buffered Jump does not fire in the new play session.
 - Crossing the X seam while retaining support identity and bounded camera/target offsets; the existing lap check also covers at least one full lap on both X and Z.
 
 ## Verification snapshot
