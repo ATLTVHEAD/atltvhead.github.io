@@ -37,12 +37,14 @@ describe('shared catalogs and contracts', () => {
 
   it('worldDescriptor_pinsSharedWorldVersionsAndScale', () => {
     expect(WORLD_DESCRIPTOR).toEqual({
-      version: 2,
+      version: 3,
       seed: 2026,
       radius: 32,
       tuningVersion: 1,
+      planar: { width: 256, depth: 256 },
     });
     expect(Object.isFrozen(WORLD_DESCRIPTOR)).toBe(true);
+    expect(Object.isFrozen(WORLD_DESCRIPTOR.planar)).toBe(true);
   });
 
   it('inputFrame_explicitlyConvertsLegacyKeyboardAndStickFields', () => {

@@ -6,7 +6,10 @@ import {
   projectToTangent,
   rotateAroundAxis,
 } from '../core/planet-math.js';
-import { sweepSkater } from '../world/city-queries.js';
+import { wrapDelta } from '../core/wrap-math.js';
+import { sweepPlanarSkater } from '../world/planar-city-queries.js';
+
+const UP = Object.freeze([0, 1, 0]);
 
 export const FOLLOW_CAMERA_TUNING = Object.freeze({
   boomLength: 7.5,
@@ -25,7 +28,7 @@ export const FOLLOW_CAMERA_TUNING = Object.freeze({
   targetSmoothingSeconds: 0.14,
   boomRestoreSeconds: 0.22,
   collisionRadius: 0.18,
-  planetClearance: 0.45,
+  groundClearance: 0.45,
   maxDeltaSeconds: 0.1,
 });
 
@@ -94,22 +97,45 @@ function cameraFraming(skater, up, forward, orbitOffset, boomLength, viewport, l
   return { position, target, frame };
 }
 
-function keepCameraOutsidePlanet(position, radius) {
-  const minimumRadius = radius + FOLLOW_CAMERA_TUNING.planetClearance;
-  const currentRadius = Math.hypot(...position);
-  if (currentRadius >= minimumRadius) return position;
-  const radial = normalize3(position);
-  return scale(radial.every((value) => value === 0) ? [0, 1, 0] : radial, minimumRadius);
+function keepCameraAboveGround(position) {
+  return [position[0], Math.max(position[1], FOLLOW_CAMERA_TUNING.groundClearance), position[2]];
 }
 
 function initialFollowDirection(skater) {
-  const up = normalize3(skater.position);
-  const candidate = normalize3(projectToTangent(skater.forward, up));
-  return candidate.every((value) => value === 0) ? makeSurfaceFrame(up, [0, 0, 1]).forward : candidate;
+  const candidate = normalize3(projectToTangent(skater.forward, UP));
+  return candidate.every((value) => value === 0) ? [0, 0, 1] : candidate;
+}
+
+function tileRebase(previous, position, world) {
+  const lastPosition = finiteVector(previous.lastSkaterPosition)
+    ? previous.lastSkaterPosition
+    : position;
+  const width = Number.isFinite(world?.width) && world.width > 0 ? world.width : 256;
+  const depth = Number.isFinite(world?.depth) && world.depth > 0 ? world.depth : 256;
+  return [
+    position[0] - lastPosition[0] - wrapDelta(lastPosition[0], position[0], width),
+    0,
+    position[2] - lastPosition[2] - wrapDelta(lastPosition[2], position[2], depth),
+  ];
+}
+
+function collisionSafeBoom(world, target, position) {
+  let candidate = keepCameraAboveGround(position);
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const collision = sweepPlanarSkater(
+      world,
+      target,
+      candidate,
+      FOLLOW_CAMERA_TUNING.collisionRadius,
+    );
+    if (!collision.blocked) return candidate;
+    candidate = keepCameraAboveGround(collision.position);
+  }
+  return candidate;
 }
 
 export function createFollowCameraState(skater, world = null, viewport = null) {
-  const up = normalize3(skater.position);
+  const up = [...UP];
   const followDirection = initialFollowDirection(skater);
   const framing = cameraFraming(
     skater,
@@ -120,7 +146,7 @@ export function createFollowCameraState(skater, world = null, viewport = null) {
     viewport,
     0,
   );
-  const position = keepCameraOutsidePlanet(framing.position, world?.radius ?? 0);
+  const position = collisionSafeBoom(world, framing.target, framing.position);
   return {
     position,
     target: framing.target,
@@ -131,6 +157,7 @@ export function createFollowCameraState(skater, world = null, viewport = null) {
     manualIdleMs: 0,
     boomLength: FOLLOW_CAMERA_TUNING.boomLength,
     actualBoomLength: Math.hypot(...subtract(position, framing.target)),
+    lastSkaterPosition: [...skater.position],
   };
 }
 
@@ -141,12 +168,15 @@ export function updateFollowCamera(previous, skater, cameraInput = {}, world = {
   const delta = Number.isFinite(deltaSeconds)
     ? clamp(deltaSeconds, 0, FOLLOW_CAMERA_TUNING.maxDeltaSeconds)
     : 0;
-  const up = normalize3(skater.position);
+  const up = [...UP];
   const initialized = previous && finiteVector(previous.position) && finiteVector(previous.target);
   const prior = initialized ? previous : createFollowCameraState(skater, world, viewport);
+  const rebase = initialized ? tileRebase(prior, skater.position, world) : [0, 0, 0];
+  const priorPosition = initialized ? add(prior.position, rebase) : null;
+  const priorTarget = initialized ? add(prior.target, rebase) : null;
   let followDirection = transportTangent(
     prior.followDirection ?? initialFollowDirection(skater),
-    prior.gravityUp ?? up,
+    UP,
     up,
   );
   const skaterForward = normalize3(projectToTangent(skater.forward, up));
@@ -183,15 +213,13 @@ export function updateFollowCamera(previous, skater, cameraInput = {}, world = {
   const speedFraction = clamp((skater.speed ?? 0) / 12, 0, 1);
   const lookAhead = FOLLOW_CAMERA_TUNING.maxLookAhead * speedFraction;
   const framing = cameraFraming(skater, up, followDirection, orbitOffset, boomLength, viewport, lookAhead);
-  const desired = keepCameraOutsidePlanet(framing.position, world?.radius ?? 0);
   const targetAlpha = initialized ? smoothAlpha(delta, FOLLOW_CAMERA_TUNING.targetSmoothingSeconds) : 1;
-  const target = initialized ? mix(prior.target, framing.target, targetAlpha) : framing.target;
-  const collision = sweepSkater(world, target, desired, FOLLOW_CAMERA_TUNING.collisionRadius);
+  const target = initialized ? mix(priorTarget, framing.target, targetAlpha) : framing.target;
   const positionAlpha = smoothAlpha(delta, FOLLOW_CAMERA_TUNING.followSmoothingSeconds);
-  let position = collision.blocked
-    ? collision.position
-    : (initialized ? mix(prior.position, collision.position, positionAlpha) : collision.position);
-  position = keepCameraOutsidePlanet(position, world?.radius ?? 0);
+  const smoothedPosition = initialized
+    ? mix(priorPosition, framing.position, positionAlpha)
+    : framing.position;
+  const position = collisionSafeBoom(world, target, smoothedPosition);
   const actualBoomLength = Math.hypot(...subtract(position, target));
 
   return {
@@ -203,8 +231,7 @@ export function updateFollowCamera(previous, skater, cameraInput = {}, world = {
     orbitOffset,
     manualIdleMs,
     boomLength,
-    actualBoomLength: collision.blocked
-      ? Math.min(actualBoomLength, prior.actualBoomLength ?? actualBoomLength)
-      : actualBoomLength,
+    actualBoomLength,
+    lastSkaterPosition: [...skater.position],
   };
 }

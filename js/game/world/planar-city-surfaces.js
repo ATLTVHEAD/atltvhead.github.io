@@ -260,7 +260,7 @@ export function compilePlanarWorld(layout) {
     version: WORLD_DESCRIPTOR.version,
     seed: WORLD_DESCRIPTOR.seed,
     tuningVersion: WORLD_DESCRIPTOR.tuningVersion,
-    geometry: layout.assetPlacements?.length ? 'kenney-industrial-v1' : 'blockout-v1',
+    geometry: layout.assetPlacements?.length ? 'planar-kenney-v1' : 'planar-blockout-v1',
     topology: 'torus',
     width: layout.width,
     depth: layout.depth,

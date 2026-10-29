@@ -1,9 +1,13 @@
 import { createCityLayout } from './world/city-layout.js';
 import { compileCityWorld } from './world/city-surfaces.js';
 import { createCityScene, disposeCityScene } from './render/city-scene.js';
+import { createPlanarCityLayout } from './world/planar-city-layout.js';
+import { compilePlanarWorld } from './world/planar-city-surfaces.js';
+import { createPlanarCityScene } from './render/planar-city-scene.js';
 import { createTvheadAvatar, setAvatarAppearance } from './render/avatar.js';
 import { bindCustomizationForm, readCustomizationForm } from './ui/customization.js';
 import { createCitySkater, stepSkaterOnCity } from './core/city-skater.js';
+import { createPlanarSkater, stepSkaterOnPlanarCity } from './core/planar-skater.js';
 import { WORLD_DESCRIPTOR } from './shared/world-config.js';
 import { createKeyboardMouseInput } from './input/keyboard-mouse.js';
 import { createGamepadInput } from './input/gamepad.js';
@@ -47,13 +51,18 @@ export function startSkateGame({ root, THREE, assets = null }) {
   let cleanupComplete = false;
   let disposed = false;
   let city = null;
+  let playCity = null;
+  let avatar = null;
   let scene = null;
+  let playScene = null;
   let renderer = null;
   let controls = null;
   let input = null;
   let session = null;
   let customizationBinding = null;
   let resizeObserver = null;
+  let activeScene = null;
+  let activeWorld = null;
 
   function registerCleanup(cleanup) {
     cleanups.push(cleanup);
@@ -82,14 +91,24 @@ export function startSkateGame({ root, THREE, assets = null }) {
     const world = compileCityWorld(layout);
     const initialSkaterState = createCitySkater(world);
     const geometryCache = new Map();
+    let planarLayout = null;
+    let playWorld = null;
     city = createCityScene(THREE, layout, world, assets);
     registerCleanup(() => {
+      if (avatar) {
+        avatar.parent?.remove(avatar);
+        city?.add(avatar);
+      }
       if (scene) scene.remove(city);
       if (city) disposeCityScene(city, assets, geometryCache);
       geometryCache.clear();
     });
+    registerCleanup(() => playCity?.dispose?.());
+    planarLayout = createPlanarCityLayout({ assetManifest: assets?.manifest ?? null });
+    playWorld = compilePlanarWorld(planarLayout);
+    playCity = createPlanarCityScene(THREE, planarLayout, playWorld, assets);
     const customizationForm = root.querySelector('#customization-form');
-    const avatar = createTvheadAvatar(
+    avatar = createTvheadAvatar(
       THREE,
       readCustomizationForm(customizationForm),
       geometryCache,
@@ -100,8 +119,19 @@ export function startSkateGame({ root, THREE, assets = null }) {
     scene = new THREE.Scene();
     scene.background = new THREE.Color('#11111c');
     scene.add(city);
+    playScene = new THREE.Scene();
+    playScene.background = new THREE.Color('#22263a');
+    playScene.fog = new THREE.Fog(playScene.background, 160, 208);
+    playScene.add(playCity);
+    playScene.add(new THREE.HemisphereLight('#d7e4ff', '#41354b', 2));
+    const playKeyLight = new THREE.DirectionalLight('#fff2dc', 2.2);
+    playKeyLight.position.set(18, 35, 12);
+    playScene.add(playKeyLight);
+    activeScene = scene;
+    activeWorld = world;
 
-    const camera = new THREE.PerspectiveCamera(44, 1, 0.1, layout.planetRadius * 12);
+    const previewFar = layout.planetRadius * 12;
+    const camera = new THREE.PerspectiveCamera(44, 1, 0.1, previewFar);
     const cameraTarget = new THREE.Vector3(
       root.clientWidth / Math.max(root.clientHeight, 1) > 1.2
         ? -layout.planetRadius * 0.5
@@ -129,6 +159,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
 
     let cameraState = null;
     let previewCameraSnapshot = null;
+    let lastMode = 'preview';
     let lastEvents = [];
     const joinButton = root.querySelector('#join-city');
     const leaveButton = root.querySelector('#leave-city');
@@ -143,7 +174,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
     );
 
     function render() {
-      if (!disposed) renderer.render(scene, camera);
+      if (!disposed) renderer.render(activeScene, camera);
     }
 
     controls = THREE.OrbitControls
@@ -174,6 +205,8 @@ export function startSkateGame({ root, THREE, assets = null }) {
       const preview = previewCameraSnapshot;
       camera.position.copy(preview?.position ?? previewCameraPosition);
       camera.up.copy(preview?.up ?? new THREE.Vector3(0, 1, 0));
+      camera.far = preview?.far ?? previewFar;
+      camera.updateProjectionMatrix();
       cameraTarget.copy(preview?.target ?? cameraTarget);
       if (controls) {
         controls.enabled = true;
@@ -198,6 +231,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
 
     function updateUI(mode) {
       if (mode === 'preview') {
+        activeScene = scene;
         root.dataset.gameState = 'ready';
         if (joinButton) joinButton.hidden = false;
         if (leaveButton) leaveButton.hidden = true;
@@ -214,6 +248,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
         showPreviewCamera();
         applyAvatarPose(avatar, session?.getState().skaterState ?? initialSkaterState);
         render();
+        lastMode = mode;
         return;
       }
 
@@ -234,11 +269,14 @@ export function startSkateGame({ root, THREE, assets = null }) {
       }
       if (mode === 'playing') {
         const state = session.getState().skaterState;
-        cameraState = createFollowCameraState(state, world, viewportFor(root));
+        if (lastMode !== 'paused') {
+          cameraState = createFollowCameraState(state, activeWorld, viewportFor(root));
+        }
         applyCameraState(cameraState);
         applyAvatarPose(avatar, state);
         render();
       }
+      lastMode = mode;
     }
 
     const isPlaying = () => session?.getState().mode === 'playing';
@@ -282,14 +320,13 @@ export function startSkateGame({ root, THREE, assets = null }) {
 
     session = createGameSession({
       initialState: initialSkaterState,
-      resetState: () => createCitySkater(world),
+      resetState: () => activeWorld === playWorld
+        ? createPlanarSkater(playWorld)
+        : createCitySkater(world),
       input,
-      step: (state, inputFrame, deltaSeconds) => stepSkaterOnCity(
-        state,
-        inputFrame,
-        deltaSeconds,
-        world,
-      ),
+      step: (state, inputFrame, deltaSeconds) => (activeWorld === playWorld
+        ? stepSkaterOnPlanarCity(state, inputFrame, deltaSeconds, playWorld)
+        : stepSkaterOnCity(state, inputFrame, deltaSeconds, world)),
       onModeChange: updateUI,
       onFrame(frame) {
         controlsPanel?.render();
@@ -301,7 +338,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
           cameraState,
           state,
           cameraInput,
-          world,
+          activeWorld,
           frame.elapsedMs / 1000,
           viewportFor(root),
         );
@@ -330,13 +367,44 @@ export function startSkateGame({ root, THREE, assets = null }) {
         position: camera.position.clone(),
         target: controls?.target.clone() ?? cameraTarget.clone(),
         up: camera.up.clone(),
+        far: camera.far,
       };
-      if (!session.joinLocal()) return;
+      activeWorld = playWorld;
+      activeScene = playScene;
+      camera.far = 512;
+      camera.updateProjectionMatrix();
+      city.remove(avatar);
+      playCity.add(avatar);
+      if (!session.joinLocal()) {
+        activeWorld = world;
+        activeScene = scene;
+        playCity.remove(avatar);
+        city.add(avatar);
+        camera.far = previewCameraSnapshot.far;
+        camera.updateProjectionMatrix();
+        previewCameraSnapshot = null;
+        return;
+      }
       canvas.focus({ preventScroll: true });
     }
 
     function onLeave() {
-      session.leave();
+      const priorWorld = activeWorld;
+      const priorScene = activeScene;
+      activeWorld = world;
+      activeScene = scene;
+      playCity.remove(avatar);
+      city.add(avatar);
+      camera.far = previewCameraSnapshot?.far ?? previewFar;
+      camera.updateProjectionMatrix();
+      if (!session.leave()) {
+        activeWorld = priorWorld;
+        activeScene = priorScene;
+        city.remove(avatar);
+        playCity.add(avatar);
+        camera.far = 512;
+        camera.updateProjectionMatrix();
+      }
       canvas.blur?.();
     }
 
@@ -405,6 +473,10 @@ export function startSkateGame({ root, THREE, assets = null }) {
       layout,
       world,
       scene,
+      playCity,
+      playWorld,
+      playScene,
+      planarLayout,
       camera,
       renderer,
       assets,

@@ -140,7 +140,12 @@ test('cityWorld_isMountedAndRenderedOnGamePage', async ({ page }) => {
   expect(result.mounted).toBe(true);
   expect(result.triangleCount).toBeGreaterThan(0);
   expect(result.readyState).toBe('ready');
-  expect(result.worldDescriptor).toMatchObject({ version: 2, radius: 32, tuningVersion: 1 });
+  expect(result.worldDescriptor).toMatchObject({
+    version: 3,
+    radius: 32,
+    tuningVersion: 1,
+    planar: { width: 256, depth: 256 },
+  });
   expect(result.skaterMode).toBe('grounded');
   expect(result.skaterRadius).toBeGreaterThan(32);
   expect(result.avatarUpAlignment).toBeGreaterThan(0.999);

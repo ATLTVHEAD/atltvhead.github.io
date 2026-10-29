@@ -28,8 +28,20 @@ test('assets_lateLoadAfterRetryDoesNotMountOldScene', async ({ page }) => {
   await expect.poll(() => seen).toBe(true);
   await page.locator('#retry-game').evaluate((button) => button.click());
   await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'ready');
-  const first = await page.evaluate(() => Boolean(window.skateGame));
-  expect(first).toBeTruthy();
+  const first = await page.evaluate(() => ({
+    mounted: Boolean(window.skateGame),
+    previewBuildingCount: window.skateGame?.city.children
+      .filter((object) => object.userData.assetId).length,
+    playTileCount: window.skateGame?.playCity.children
+      .filter((object) => object.userData.tileOffset).length,
+    sharedLibrary: Boolean(window.skateGame?.assets),
+  }));
+  expect(first).toEqual({
+    mounted: true,
+    previewBuildingCount: 8,
+    playTileCount: 9,
+    sharedLibrary: true,
+  });
   await page.evaluate(() => { window.__mountedAfterRetry = window.skateGame; });
   release();
   await page.waitForTimeout(300);
