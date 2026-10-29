@@ -145,7 +145,7 @@ function closestSegments(a0, a1, b0, b1) {
   return { s, distance: Math.hypot(...subtract(pointA, pointB)) };
 }
 
-function sweepBox(box, from, to, radius) {
+export function sweepBox(box, from, to, radius) {
   const start = box.axes.map((axis) => dot3(subtract(from, box.center), axis));
   const end = box.axes.map((axis) => dot3(subtract(to, box.center), axis));
   const extents = box.halfExtents.map((value) => value + Math.max(0, radius));
