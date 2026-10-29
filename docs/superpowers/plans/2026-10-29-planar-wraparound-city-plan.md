@@ -69,7 +69,7 @@ Decisions required by the existing code (these clarify, rather than replace, use
 
 **Interfaces:** `wrapScalar(value,span)->number`; `wrapPosition([x,y,z],{width,depth})->[x,y,z]`; `wrapDelta(from,to,span)->number` is signed shortest `to-from`, in `[-span/2,span/2)`; `nearestImage(value,reference,span)->number` is `reference + wrapDelta(reference,value,span)`. Reject nonfinite inputs or nonpositive spans with `RangeError`; do not mutate inputs.
 
-- [ ] **1. RED:** Add `wrap_exactNegativeAndMultipleSpans`, `wrap_shortestDeltaAndHalfSpanTie`, `wrap_positionPreservesHeightAndInputs`, `wrap_rejectsInvalidDimensions`.
+- [x] **1. RED:** Add `wrap_exactNegativeAndMultipleSpans`, `wrap_shortestDeltaAndHalfSpanTie`, `wrap_positionPreservesHeightAndInputs`, `wrap_rejectsInvalidDimensions`.
   ```js
   expect(wrapScalar(-1, 256)).toBe(255);
   expect(wrapScalar(512, 256)).toBe(0);
@@ -79,10 +79,10 @@ Decisions required by the existing code (these clarify, rather than replace, use
   expect(wrapPosition([-1, 7, 257], { width: 256, depth: 256 })).toEqual([255, 7, 1]);
   expect(() => wrapScalar(1, 0)).toThrow(RangeError);
   ```
-- [ ] **2. Verify RED:** `npm run test:unit -- tests/unit/wrap-math.test.js`; fail for missing implementation.
-- [ ] **3. GREEN:** Implement the four pure exports, including positive modulo and deterministic half-span tie.
-- [ ] **4. Verify GREEN:** Focused command then `npm test`; record actual counts, including whether Worker tests are empty.
-- [ ] **5. Commit:** Stage only the two P1 files; `git commit -m "feat: add deterministic torus coordinate math"`.
+- [x] **2. Verify RED:** `npm run test:unit -- tests/unit/wrap-math.test.js`; failed first on missing module, then (after temporary interface stubs) all four behavior tests failed as expected.
+- [x] **3. GREEN:** Implement the four pure exports, including positive modulo and deterministic half-span tie.
+- [x] **4. Verify GREEN:** Focused command passed; post-commit `npm test`: 175 unit pass, Worker suite empty (exit0), 36 browser pass.
+- [x] **5. Commit:** `f0b1581 feat: add deterministic torus coordinate math`.
 
 ## Task 2: P2 — Static irregular routes and building-defined alleys
 
