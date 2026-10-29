@@ -66,6 +66,32 @@ describe('game asset loader', () => {
     assets.release(second);
     expect(disposed).toBe(2);
   });
+  it('assets_previewSurvivesPlaySceneDisposal', async () => {
+    let disposed = 0;
+    const geometry = { dispose() { disposed += 1; } };
+    const material = { dispose() { disposed += 1; } };
+    function scene() {
+      return {
+        traverse(fn) { fn({ geometry, material }); },
+        clone() { return scene(); },
+        visible: true,
+      };
+    }
+    class GLTFLoader { load(url, onLoad) { onLoad({ scene: scene(), animations: [] }); } }
+    const assets = await loadGameAssets({ THREE: { GLTFLoader },
+      manifest: { assets: [{ id: 'building', url: 'assets/game/building.glb' }] } });
+    const previewBuilding = assets.retain('building');
+    const playBuilding = assets.retain('building');
+
+    assets.release(playBuilding);
+    expect(playBuilding.visible).toBe(true);
+    expect(previewBuilding.visible).toBe(true);
+    expect(disposed).toBe(0);
+    assets.dispose();
+    expect(disposed).toBe(0);
+    assets.release(previewBuilding);
+    expect(disposed).toBe(2);
+  });
   it('assets_abortDisposesLateResults', async () => {
     let callback;
     let disposed = 0;
