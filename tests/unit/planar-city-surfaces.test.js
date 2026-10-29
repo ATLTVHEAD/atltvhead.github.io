@@ -116,6 +116,11 @@ describe('compilePlanarWorld surfaces', () => {
     expect(decks.every((deck) => deck.width === 0.9
       && deck.vertices.every((point) => point[1] === 0.82)
       && deck.routeEdgeId === 'route-plaza-ramp')).toBe(true);
-    expect(world.rails.every((rail) => rail.totalLength === 24 && rail.supportSurfaceId)).toBe(true);
+    const primaryRails = world.rails.filter((rail) => rail.id.startsWith('primary-rail-'));
+    expect(primaryRails).toHaveLength(2);
+    expect(primaryRails.every((rail) => rail.totalLength === 24 && rail.supportSurfaceId
+      && rail.gravityUp.join(',') === '0,1,0')).toBe(true);
+    expect(world.rails.map((rail) => rail.type)).toEqual(['rail', 'rail', 'ledge', 'pipe']);
+    expect(world.rails.every((rail) => rail.totalLength > 0 && rail.supportSurfaceId)).toBe(true);
   });
 });

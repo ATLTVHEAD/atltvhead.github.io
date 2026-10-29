@@ -1,6 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createPlanarCityLayout } from '../../js/game/world/planar-city-layout.js';
+import { compilePlanarWorld } from '../../js/game/world/planar-city-surfaces.js';
+import { sampleSkatePath, projectSkatePath } from '../../js/game/world/skate-paths.js';
+import { queryPlanarSupport, sweepPlanarSkater } from '../../js/game/world/planar-city-queries.js';
+import { createSkateLineFixture } from '../fixtures/skate-line.js';
 
 const manifest = JSON.parse(readFileSync(new URL('../../assets/game/manifest.json', import.meta.url)));
 const distance = (a, b) => Math.hypot(a[0] - b[0], a[2] - b[2]);
@@ -298,6 +302,88 @@ describe('static planar city layout', () => {
     const plazaProps = layout.props;
     expect(plazaProps.every((prop) => prop.position[0] >= 184 && prop.position[0] <= 220
       && prop.position[2] >= 112 && prop.position[2] <= 146)).toBe(true);
+  });
+
+  it('world_branchTurnsAndRejoins', () => {
+    const { world, lineIds } = createSkateLineFixture({ assetManifest: manifest });
+    const branch = world.routeGraph.branches.find((record) => record.id === lineIds.branch);
+    const branchEdges = world.routeGraph.edges.filter((edge) => edge.branchId === lineIds.branch);
+    const nodes = new Map(world.routeGraph.nodes.map((node) => [node.id, node]));
+
+    expect(branch).toBeDefined();
+    expect(branch.entryNodeId).not.toBe(branch.exitNodeId);
+    expect(branchEdges.length).toBeGreaterThanOrEqual(4);
+    expect(branchEdges[0].from).toBe(branch.entryNodeId);
+    expect(branchEdges.at(-1).to).toBe(branch.exitNodeId);
+    expect(branchEdges.every((edge) => world.surfaces.some((surface) => surface.id === edge.surfaceId)))
+      .toBe(true);
+    expect(nodes.has(branch.entryNodeId) && nodes.has(branch.exitNodeId)).toBe(true);
+    const directions = branchEdges.map((edge) => {
+      const from = nodes.get(edge.from).position;
+      const to = nodes.get(edge.to).position;
+      const dx = to[0] - from[0];
+      const dz = to[2] - from[2];
+      const length = Math.hypot(dx, dz);
+      return [dx / length, dz / length];
+    });
+    const turns = directions.slice(1).filter((direction, index) => (
+      directions[index][0] * direction[0] + directions[index][1] * direction[1] < Math.cos(Math.PI / 4)
+    ));
+    expect(turns).toHaveLength(2);
+    expect(branch.rejoinsRouteId).toBeTruthy();
+    expect(world.routeGraph.edges.some((edge) => edge.from === branch.exitNodeId
+      && edge.surfaceId === branch.rejoinsRouteId)).toBe(true);
+  });
+
+  it('world_launchRailLandingHasSweptClearance', () => {
+    const { world, lineIds } = createSkateLineFixture({ assetManifest: manifest });
+    const marker = world.launchMarkers.find((record) => record.id === lineIds.lip);
+    const launchPath = world.rails.find((path) => path.id === marker?.supportId);
+    const capturePath = world.rails.find((path) => path.id === lineIds.capture);
+
+    expect(marker).toBeDefined();
+    expect(launchPath).toBeDefined();
+    expect(capturePath).toBeDefined();
+    expect(marker.direction).toBe(1);
+    expect(marker.point).toEqual(expect.arrayContaining([expect.any(Number)]));
+    expect(launchPath.gravityUp).toEqual([0, 1, 0]);
+
+    const launch = [...marker.point];
+    const speed = 3;
+    const upwardSpeed = 4;
+    const gravity = 14;
+    const landingTime = (upwardSpeed + Math.sqrt(upwardSpeed ** 2 + 2 * gravity * launch[1])) / gravity;
+    const closestCapture = { distance: Infinity, alignment: 0 };
+    let previous = launch;
+
+    for (let time = 1 / 120; time <= landingTime; time += 1 / 120) {
+      const vertical = launch[1] + upwardSpeed * time - gravity * time ** 2 / 2;
+      const position = [
+        launch[0] + marker.tangent[0] * speed * time,
+        Math.max(0, vertical),
+        launch[2] + marker.tangent[2] * speed * time,
+      ];
+      const clearance = sweepPlanarSkater(world, previous, position, 0.25);
+      expect(clearance.blocked, `launch body intersects ${clearance.hitId}`).toBe(false);
+      const capture = projectSkatePath(capturePath, position, position);
+      const velocity = [marker.tangent[0] * speed, upwardSpeed - gravity * time, marker.tangent[2] * speed];
+      const velocityLength = Math.hypot(...velocity);
+      const alignment = Math.abs(velocity.reduce((sum, value, axis) => (
+        sum + value * capture.tangent[axis]
+      ), 0)) / velocityLength;
+      if (capture.distanceToPath < closestCapture.distance) {
+        closestCapture.distance = capture.distanceToPath;
+        closestCapture.alignment = alignment;
+      }
+      previous = position;
+    }
+
+    const landing = [previous[0], 0, previous[2]];
+    const support = queryPlanarSupport(world, landing, { maxDrop: 0.02, maxRise: 0.02 });
+    expect(closestCapture.distance).toBeLessThanOrEqual(0.8);
+    expect(closestCapture.alignment).toBeGreaterThanOrEqual(0.65);
+    expect(support?.surfaceId).toBe(lineIds.landing);
+    expect(sweepPlanarSkater(world, previous, landing, 0.25).blocked).toBe(false);
   });
 
   it('layout_seamCrossSectionsAndExplicitPatchesAreExact', () => {

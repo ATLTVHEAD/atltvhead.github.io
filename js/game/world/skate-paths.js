@@ -8,11 +8,19 @@ const validPoint = (point) => Array.isArray(point) && point.length === 3 && poin
 export function compileSkatePath(record) {
   if (!record?.id || !Array.isArray(record.points) || record.points.length < 2
       || !record.points.every(validPoint)) throw new TypeError('A path needs an ID and finite points.');
+  let gravityUp;
+  if (record.gravityUp !== undefined) {
+    if (!validPoint(record.gravityUp)) throw new TypeError('A path gravityUp must be a finite 3D vector.');
+    gravityUp = normalize3(record.gravityUp);
+    if (gravityUp.every((value) => Math.abs(value) < 1e-12)) {
+      throw new RangeError('A path gravityUp vector must be nonzero.');
+    }
+  }
   const points = record.points.map((point) => [...point]);
   const segmentLengths = points.slice(1).map((point, i) => Math.hypot(...sub(point, points[i])));
   const totalLength = segmentLengths.reduce((sum, length) => sum + length, 0);
   if (!(totalLength > 0)) throw new RangeError('A path must have nonzero length.');
-  return { ...record, points, segmentLengths, totalLength,
+  return { ...record, ...(gravityUp ? { gravityUp } : {}), points, segmentLengths, totalLength,
     bounds: { min: [0, 1, 2].map((i) => Math.min(...points.map((p) => p[i]))),
       max: [0, 1, 2].map((i) => Math.max(...points.map((p) => p[i]))) } };
 }
@@ -26,7 +34,7 @@ export function sampleSkatePath(path, distance) {
     if (remaining <= length || index === path.segmentLengths.length - 1) {
       const tangent = normalize3(sub(path.points[index + 1], path.points[index]));
       const point = addScaled(path.points[index], tangent, Math.min(remaining, length));
-      return { point, tangent, gravityUp: normalize3(point) };
+      return { point, tangent, gravityUp: path.gravityUp ? [...path.gravityUp] : normalize3(point) };
     }
     remaining -= length;
   }

@@ -136,6 +136,8 @@ test('planarRender_realAssetsRepeatAcrossNineTilesWithVisibleContacts', async ({
   expect(result.unclassifiedMeshCount).toBe(0);
   expect(result.features).toContain('ramp');
   expect(result.features).toContain('rail');
+  expect(result.features).toContain('tag-panel');
+  expect(result.features).toContain('launch-marker');
   expect(result.canonicalBoundsGap).toBeLessThan(0.02);
   expect(result.westBoundsGap).toBeLessThan(0.02);
   expect(result.centralRender.calls).toBeGreaterThan(0);

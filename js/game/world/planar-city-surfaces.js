@@ -200,7 +200,7 @@ function routeJoins(routeGraph, surfaces) {
 }
 
 function makeRailDeck(rail) {
-  const points = rail.points.map((point) => [point[0], rail.top, point[2]]);
+  const points = rail.points.map((point) => [...point]);
   const width = rail.width;
   const vertices = [];
   for (let index = 0; index < points.length; index += 1) {
@@ -223,7 +223,7 @@ function makeRailDeck(rail) {
   }
   const record = {
     id: `${rail.id}:deck`,
-    type: 'rail-deck',
+    type: rail.type === 'ledge' ? 'ledge-deck' : 'rail-deck',
     routeEdgeId: rail.routeEdgeId ?? null,
     width,
   };
@@ -233,17 +233,91 @@ function makeRailDeck(rail) {
 
 function compileRail(record) {
   if (!Number.isFinite(record?.width) || record.width <= 0
-      || !Number.isFinite(record.top) || !Array.isArray(record.points)) {
-    throw new TypeError(`Rail ${record?.id ?? 'unknown'} needs a width, top, and finite path.`);
+      || (record.top !== undefined && !Number.isFinite(record.top))
+      || !Array.isArray(record.points)) {
+    throw new TypeError(`Skate path ${record?.id ?? 'unknown'} needs a positive width and finite path.`);
+  }
+  const type = record.type ?? 'rail';
+  if (!['rail', 'pipe', 'ledge'].includes(type)) {
+    throw new TypeError(`Skate path ${record?.id ?? 'unknown'} has an unsupported type.`);
+  }
+  const radius = record.radius ?? (type === 'pipe' ? 0.09 : 0.12);
+  if (!Number.isFinite(radius) || radius <= 0) {
+    throw new RangeError(`Skate path ${record.id} needs a positive radius.`);
   }
   const path = compileSkatePath(record);
   const supportSurfaceId = `${record.id}:deck`;
   return {
     ...path,
+    type,
+    radius,
+    ...(Array.isArray(record.connectedSupportIds)
+      ? { connectedSupportIds: [...record.connectedSupportIds] }
+      : {}),
+    supportDeck: record.supportDeck !== false,
     start: [...path.points[0]],
     end: [...path.points.at(-1)],
     supportSurfaceId,
   };
+}
+
+function compileLaunchMarker(record) {
+  if (!record?.id || !record.supportId || !isFiniteVector(record.point)
+      || !isFiniteVector(record.normal) || !isFiniteVector(record.tangent)
+      || !Number.isFinite(record.halfWidth) || record.halfWidth <= 0
+      || !Number.isFinite(record.halfHeight) || record.halfHeight <= 0
+      || ![-1, 1].includes(record.direction)) {
+    throw new TypeError(`Launch marker ${record?.id ?? 'unknown'} is malformed.`);
+  }
+  const normal = normalize3(record.normal);
+  const tangent = normalize3(record.tangent);
+  if (normal.every((value) => Math.abs(value) < 1e-12)
+      || tangent.every((value) => Math.abs(value) < 1e-12)) {
+    throw new RangeError(`Launch marker ${record.id} needs nonzero normal and tangent vectors.`);
+  }
+  return { ...record, point: [...record.point], normal, tangent };
+}
+
+function compileTagTarget(record) {
+  if (!record?.id || !Array.isArray(record.triangles) || record.triangles.length === 0
+      || !Array.isArray(record.polygon) || record.polygon.length < 3
+      || !record.polygon.every((point) => Array.isArray(point) && point.length === 2
+        && point.every(Number.isFinite))
+      || !record.frame || !['origin', 'right', 'up', 'normal']
+        .every((key) => isFiniteVector(record.frame[key]))) {
+    throw new TypeError(`Tag target ${record?.id ?? 'unknown'} is malformed.`);
+  }
+  const frame = Object.fromEntries(['origin', 'right', 'up', 'normal'].map((key) => (
+    [key, [...record.frame[key]]]
+  )));
+  frame.right = normalize3(frame.right);
+  frame.up = normalize3(frame.up);
+  frame.normal = normalize3(frame.normal);
+  if ([frame.right, frame.up, frame.normal].some((axis) => (
+    axis.every((value) => Math.abs(value) < 1e-12)
+  ))) throw new RangeError(`Tag target ${record.id} has a zero frame axis.`);
+
+  const triangleIds = new Set();
+  const triangles = record.triangles.map((triangle, index) => {
+    if (!triangle?.id || triangleIds.has(triangle.id) || !Array.isArray(triangle.points)
+        || triangle.points.length !== 3 || !triangle.points.every(isFiniteVector)) {
+      throw new TypeError(`Tag target ${record.id} has a malformed triangle.`);
+    }
+    triangleIds.add(triangle.id);
+    const points = triangle.points.map((point) => [...point]);
+    let normal = normalize3(cross3(subtract(points[1], points[0]), subtract(points[2], points[0])));
+    if (normal.every((value) => Math.abs(value) < 1e-12)) {
+      throw new RangeError(`Tag target ${record.id} has a degenerate triangle.`);
+    }
+    if (dot3(normal, frame.normal) < 0) normal = scale(normal, -1);
+    return {
+      id: triangle.id ?? `${record.id}:triangle-${index}`,
+      points,
+      normal,
+      bounds: boundsFor(points),
+    };
+  });
+  return { ...record, frame, polygon: record.polygon.map((point) => [...point]), triangles };
 }
 
 export function compilePlanarWorld(layout) {
@@ -254,8 +328,10 @@ export function compilePlanarWorld(layout) {
   const surfaces = (layout.surfaces ?? []).map(compileSurface);
   const buildings = (layout.buildings ?? []).map(compileBox);
   const props = (layout.props ?? []).map(compileBox);
-  const rails = (layout.rails ?? []).map(compileRail);
-  for (const rail of rails) surfaces.push(makeRailDeck(rail));
+  const rails = [...(layout.rails ?? []), ...(layout.skatePaths ?? [])].map(compileRail);
+  for (const rail of rails) {
+    if (rail.supportDeck) surfaces.push(makeRailDeck(rail));
+  }
   const descriptor = Object.freeze({
     version: WORLD_DESCRIPTOR.version,
     seed: WORLD_DESCRIPTOR.seed,
@@ -279,8 +355,8 @@ export function compilePlanarWorld(layout) {
     spawnPoints: (layout.spawnPoints ?? []).map((spawn) => ({ ...spawn,
       position: [...spawn.position], forward: [...spawn.forward] })),
     defaultSpawnId: layout.defaultSpawnId ?? null,
-    launchMarkers: [...(layout.launchMarkers ?? [])],
-    tagTargets: [...(layout.tagTargets ?? [])],
+    launchMarkers: (layout.launchMarkers ?? []).map(compileLaunchMarker),
+    tagTargets: (layout.tagTargets ?? []).map(compileTagTarget),
     routeGraph: layout.routeGraph ?? { nodes: [], edges: [] },
   };
 }

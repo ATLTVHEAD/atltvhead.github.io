@@ -53,6 +53,7 @@ function makeNodes() {
     { id: 'alley-turn-one', position: [61.5, 0, 108.5] },
     { id: 'alley-turn-two', position: [158.5, 0, 111.5] },
     { id: 'alley-end', position: [160, 0, 190] },
+    { id: 'alley-rejoin', position: [160, 0, 220] },
     { id: 'plaza-node', position: [202, 0, 128] },
     { id: 'north-plaza-link', position: [236, 0, 128] },
   ];
@@ -69,18 +70,31 @@ function makeRouteGraph() {
       makeEdge('west-south-to-alley', 'junction-west-south', 'alley-start', 'street-wrap-x-west'),
       makeEdge('alley-to-west-north', 'alley-start', 'junction-west-north', 'street-wrap-x-west'),
       makeEdge('west-x-seam', 'junction-west-north', 'junction-west-south', 'street-wrap-x-west', [1, 0]),
-      makeEdge('east-south-to-east-north', 'junction-east-south', 'junction-east-north', 'street-wrap-x-east'),
+      makeEdge('east-south-to-alley-rejoin', 'junction-east-south', 'alley-rejoin', 'street-wrap-x-east'),
+      makeEdge('alley-rejoin-to-east-north', 'alley-rejoin', 'junction-east-north', 'street-wrap-x-east'),
       makeEdge('east-x-seam', 'junction-east-north', 'junction-east-south', 'street-wrap-x-east', [1, 0]),
       makeEdge('south-west-to-south-east', 'junction-west-south', 'junction-east-south', 'street-wrap-z-south'),
       makeEdge('south-z-seam', 'junction-east-south', 'junction-west-south', 'street-wrap-z-south', [0, 1]),
       makeEdge('north-west-to-plaza-link', 'junction-west-north', 'north-plaza-link', 'street-wrap-z-north'),
       makeEdge('north-plaza-to-east', 'north-plaza-link', 'junction-east-north', 'street-wrap-z-north'),
       makeEdge('north-z-seam', 'junction-east-north', 'junction-west-north', 'street-wrap-z-north', [0, 1]),
-      makeEdge('alley-turn-one', 'alley-start', 'alley-turn-one', 'alley-dogleg'),
-      makeEdge('alley-turn-two', 'alley-turn-one', 'alley-turn-two', 'alley-dogleg'),
-      makeEdge('alley-exit', 'alley-turn-two', 'alley-end', 'alley-dogleg'),
+      { ...makeEdge('branch-alley-turn-one', 'alley-start', 'alley-turn-one', 'alley-dogleg'),
+        branchId: 'branch-alley-dogleg' },
+      { ...makeEdge('branch-alley-turn-two', 'alley-turn-one', 'alley-turn-two', 'alley-dogleg'),
+        branchId: 'branch-alley-dogleg' },
+      { ...makeEdge('branch-alley-exit', 'alley-turn-two', 'alley-end', 'alley-dogleg'),
+        branchId: 'branch-alley-dogleg' },
+      { ...makeEdge('branch-alley-rejoin', 'alley-end', 'alley-rejoin', 'street-alley-exit'),
+        branchId: 'branch-alley-dogleg' },
       makeEdge('plaza-connector', 'plaza-node', 'north-plaza-link', 'street-plaza-connector'),
     ],
+    branches: [{
+      id: 'branch-alley-dogleg',
+      entryNodeId: 'alley-start',
+      exitNodeId: 'alley-rejoin',
+      rejoinsRouteId: 'street-wrap-x-east',
+      surfaceIds: ['alley-dogleg', 'street-alley-exit'],
+    }],
   };
 }
 
@@ -144,14 +158,99 @@ function makeRampAndRails(surfaces) {
   return [
     {
       id: 'primary-rail-left', routeEdgeId: ramp.routeEdgeId, top: 0.82, width: 0.9, length: 24,
+      gravityUp: UP,
       points: [[92.35, 0.82, 160], [92.35, 0.82, 184]],
       start: [92.35, 0.82, 160], end: [92.35, 0.82, 184], radius: 0.09, captureRadius: 1.15,
     },
     {
       id: 'primary-rail-right', routeEdgeId: ramp.routeEdgeId, top: 0.82, width: 0.9, length: 24,
+      gravityUp: UP,
       points: [[95.65, 0.82, 160], [95.65, 0.82, 184]],
       start: [95.65, 0.82, 160], end: [95.65, 0.82, 184], radius: 0.09, captureRadius: 1.15,
     },
+  ];
+}
+
+function makeSkatePaths() {
+  return [
+    {
+      id: 'line-smooth-crest-exit',
+      type: 'ledge',
+      top: 1.2,
+      width: 0.8,
+      radius: 0.12,
+      supportDeck: true,
+      gravityUp: UP,
+      connectedSupportIds: ['line-landing-runout'],
+      points: [
+        [124, 0, 80], [126, 0.38, 80], [128, 0.78, 80], [130, 1.08, 80],
+        [132, 1.2, 80], [134, 1.08, 80], [136, 0.78, 80], [138, 0.38, 80],
+      ],
+    },
+    {
+      id: 'line-pipe-capture',
+      type: 'pipe',
+      top: 1.9,
+      width: 0.16,
+      radius: 0.09,
+      supportDeck: false,
+      gravityUp: UP,
+      connectedSupportIds: ['line-smooth-crest-exit', 'line-landing-runout'],
+      points: [[132.8, 1.78, 80], [133.2, 1.9, 80], [133.8, 1.9, 80], [134.2, 1.78, 80]],
+    },
+  ];
+}
+
+function makeTagTarget({ id, origin, right, up, width, height, hostId = null }) {
+  const normal = normalize3(cross3(right, up));
+  const lowerRight = origin.map((value, axis) => value + right[axis] * width);
+  const upperRight = lowerRight.map((value, axis) => value + up[axis] * height);
+  const upperLeft = origin.map((value, axis) => value + up[axis] * height);
+  return {
+    id,
+    ...(hostId ? { hostId } : {}),
+    frame: { origin: [...origin], right: [...right], up: [...up], normal },
+    polygon: [[0, 0], [width, 0], [width, height], [0, height]],
+    triangles: [
+      { id: `${id}:triangle-0`, points: [[...origin], lowerRight, upperRight] },
+      { id: `${id}:triangle-1`, points: [[...origin], upperRight, upperLeft] },
+    ],
+  };
+}
+
+function makeLaunchMarkers() {
+  return [{
+    id: 'launch-lip-smooth-crest',
+    supportId: 'line-smooth-crest-exit',
+    point: [132, 1.2, 80],
+    normal: [1, 0, 0],
+    tangent: [1, 0, 0],
+    halfWidth: 0.85,
+    halfHeight: 0.65,
+    direction: 1,
+  }];
+}
+
+function makeTagTargets() {
+  return [
+    makeTagTarget({
+      id: 'tag-panel-container-north',
+      origin: [188.5, 1.05, 122.18],
+      right: [1, 0, 0],
+      up: [0, 1, 0],
+      width: 3,
+      height: 1.45,
+      hostId: 'plaza-container-west',
+    }),
+    makeTagTarget({
+      id: 'tag-panel-alley-west-wall',
+      origin: [58.32, 1.1, 71.1],
+      right: [0, 0, -1],
+      up: [0, 1, 0],
+      width: 2,
+      height: 1.4,
+      hostId: 'alley-wall-1-left',
+    }),
   ];
 }
 
@@ -184,6 +283,20 @@ function makeSurfaces() {
       routeEdgeId: 'route-street-plaza-connector',
       points: [[202, 0, 128], [236, 0, 128]],
       widths: [6.0, 6.0],
+    }),
+    makeRouteSurface({
+      id: 'street-alley-exit',
+      type: 'street',
+      routeEdgeId: 'route-street-alley-exit',
+      points: [[160, 0, 190], [160, 0, 205], [160, 0, 220]],
+      widths: [3.2, 4.2, 5.0],
+    }),
+    makeRouteSurface({
+      id: 'line-landing-runout',
+      type: 'street',
+      routeEdgeId: 'route-line-landing-runout',
+      points: [[132, 0, 80], [138, 0, 80], [146, 0, 80]],
+      widths: [3.2, 3.4, 3.6],
     }),
     makePatch({
       id: 'plaza-central', type: 'plaza',
@@ -228,11 +341,13 @@ export function createPlanarCityLayout({ assetManifest } = {}) {
       { id: 'spawn-plaza', surfaceId: 'plaza-central', position: [202, 0, 130], forward: [1, 0, 0], routeId: 'route-plaza-connector' },
       { id: 'spawn-wrap-x', surfaceId: 'street-wrap-x-west', position: [224, 0, 30], forward: [1, 0, 0], routeId: 'route-street-wrap-x-west' },
       { id: 'spawn-wrap-z', surfaceId: 'street-wrap-z-south', position: [20, 0, 248], forward: [0, 0, 1], routeId: 'route-street-wrap-z-south' },
+      { id: 'spawn-skate-line', surfaceId: 'line-landing-runout', position: [120, 0, 80], forward: [1, 0, 0], routeId: 'route-line-landing-runout' },
     ],
     defaultSpawnId: 'spawn-plaza',
     landmarks: [{ id: 'landmark-central-plaza', position: [202, 0, 128] }],
-    launchMarkers: [],
-    tagTargets: [],
+    skatePaths: makeSkatePaths(),
+    launchMarkers: makeLaunchMarkers(),
+    tagTargets: makeTagTargets(),
   };
   return placePlanarCityAssets(layout, assetManifest);
 }

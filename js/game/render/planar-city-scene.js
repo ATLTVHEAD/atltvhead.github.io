@@ -176,7 +176,7 @@ function makeSurfaceBatches(THREE, world, streetMaterial, rampMaterial, ownedGeo
   const ramp = [];
   const surfaceIds = { street: [], ramp: [] };
   for (const surface of world.surfaces) {
-    if (surface.type === 'rail-deck') continue;
+    if (surface.type === 'rail-deck' || surface.type === 'ledge-deck') continue;
     if (surface.type === 'ramp') {
       ramp.push(surfaceGeometry(THREE, surface, ownedGeometries));
       surfaceIds.ramp.push(surface.id);
@@ -204,15 +204,35 @@ function railGeometries(THREE, world, material, ownedGeometries) {
       const direction = end.clone().sub(start);
       const length = direction.length();
       if (length < 1e-8) continue;
-      const geometry = ownGeometry(
-        ownedGeometries,
-        new THREE.CylinderGeometry(rail.radius, rail.radius, length, 8, 1),
-      );
-      const transform = new THREE.Matrix4().compose(
-        start.clone().add(end).multiplyScalar(0.5),
-        new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize()),
-        new THREE.Vector3(1, 1, 1),
-      );
+      let geometry;
+      let transform;
+      if (rail.type === 'ledge') {
+        const tangent = direction.clone().normalize();
+        const side = new THREE.Vector3().crossVectors(tangent, new THREE.Vector3(0, 1, 0)).normalize();
+        const normal = new THREE.Vector3().crossVectors(side, tangent).normalize();
+        const rotation = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(
+          side,
+          tangent,
+          normal,
+        ));
+        geometry = ownGeometry(ownedGeometries,
+          new THREE.BoxGeometry(rail.width, length, rail.radius * 2));
+        transform = new THREE.Matrix4().compose(
+          start.clone().add(end).multiplyScalar(0.5),
+          rotation,
+          new THREE.Vector3(1, 1, 1),
+        );
+      } else {
+        geometry = ownGeometry(
+          ownedGeometries,
+          new THREE.CylinderGeometry(rail.radius, rail.radius, length, 8, 1),
+        );
+        transform = new THREE.Matrix4().compose(
+          start.clone().add(end).multiplyScalar(0.5),
+          new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize()),
+          new THREE.Vector3(1, 1, 1),
+        );
+      }
       geometry.applyMatrix4(transform);
       geometry.computeVertexNormals();
       geometries.push(geometry);
@@ -297,6 +317,127 @@ function makeAttachmentApi(THREE, city, tiles, attachments) {
     previous.clones.forEach((clone, index) => tiles[index].remove(clone));
     attachments.delete(object);
   };
+}
+
+function panelPoint(frame, x, y, offset = 0.03) {
+  return [0, 1, 2].map((axis) => frame.origin[axis]
+    + frame.right[axis] * x + frame.up[axis] * y + frame.normal[axis] * offset);
+}
+
+function appendTriangle(positions, colors, points, color) {
+  for (const point of points) {
+    positions.push(...point);
+    colors.push(color.r, color.g, color.b);
+  }
+}
+
+function appendQuad(positions, colors, frame, rectangle, color) {
+  const [[minX, minY], [maxX, maxY]] = rectangle;
+  const bottomLeft = panelPoint(frame, minX, minY);
+  const bottomRight = panelPoint(frame, maxX, minY);
+  const topRight = panelPoint(frame, maxX, maxY);
+  const topLeft = panelPoint(frame, minX, maxY);
+  appendTriangle(positions, colors, [bottomLeft, bottomRight, topRight], color);
+  appendTriangle(positions, colors, [bottomLeft, topRight, topLeft], color);
+}
+
+function makeTagPanel(THREE, target, ownedGeometries, ownedMaterials) {
+  const positions = [];
+  const colors = [];
+  const background = new THREE.Color('#273047');
+  const accent = new THREE.Color('#53edff');
+  for (const triangle of target.triangles) {
+    appendTriangle(positions, colors,
+      triangle.points.map((point) => point.map((value, axis) => (
+        value + target.frame.normal[axis] * 0.03
+      ))), background);
+  }
+
+  const xs = target.polygon.map((point) => point[0]);
+  const ys = target.polygon.map((point) => point[1]);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const border = Math.min((maxX - minX) / 12, (maxY - minY) / 10, 0.07);
+  appendQuad(positions, colors, target.frame, [[minX, minY], [maxX, minY + border]], accent);
+  appendQuad(positions, colors, target.frame, [[minX, maxY - border], [maxX, maxY]], accent);
+  appendQuad(positions, colors, target.frame,
+    [[minX, minY + border], [minX + border, maxY - border]], accent);
+  appendQuad(positions, colors, target.frame,
+    [[maxX - border, minY + border], [maxX, maxY - border]], accent);
+  const glyphStart = minX + (maxX - minX) * 0.2;
+  const glyphEnd = maxX - (maxX - minX) * 0.2;
+  const glyphHeight = (maxY - minY) * 0.045;
+  for (const fraction of [0.42, 0.56, 0.7]) {
+    const y = minY + (maxY - minY) * fraction;
+    appendQuad(positions, colors, target.frame, [
+      [glyphStart, y],
+      [glyphEnd, y + glyphHeight],
+    ], accent);
+  }
+
+  const geometry = ownGeometry(ownedGeometries, new THREE.BufferGeometry());
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  const material = new THREE.MeshStandardMaterial({
+    color: '#ffffff',
+    vertexColors: true,
+    roughness: 0.78,
+    side: THREE.DoubleSide,
+  });
+  ownedMaterials.add(material);
+  const panel = new THREE.Group();
+  panel.name = target.id;
+  panel.userData.cityFeature = 'tag-panel';
+  panel.userData.targetId = target.id;
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.userData.cityFeature = 'tag-panel';
+  mesh.userData.targetId = target.id;
+  panel.add(mesh);
+  return panel;
+}
+
+function makeLaunchMarker(THREE, marker, material, ownedGeometries) {
+  const geometry = ownGeometry(
+    ownedGeometries,
+    new THREE.TorusGeometry(marker.halfWidth, 0.035, 6, 24),
+  );
+  const group = new THREE.Group();
+  group.name = marker.id;
+  group.position.set(...marker.point);
+  group.quaternion.setFromUnitVectors(
+    new THREE.Vector3(0, 0, 1),
+    vector(THREE, marker.normal).normalize(),
+  );
+  group.scale.set(1, marker.halfHeight / marker.halfWidth, 1);
+  group.userData.cityFeature = 'launch-marker';
+  group.userData.markerId = marker.id;
+  const ring = new THREE.Mesh(geometry, material);
+  ring.position.set(0, 0, 0.04);
+  ring.userData.cityFeature = 'launch-marker';
+  ring.userData.markerId = marker.id;
+  group.add(ring);
+  return group;
+}
+
+function addAuthoredAttachments(THREE, city, world, ownedGeometries, ownedMaterials) {
+  const launchMaterial = new THREE.MeshStandardMaterial({
+    color: '#53edff',
+    emissive: '#146573',
+    metalness: 0.35,
+    roughness: 0.32,
+  });
+  ownedMaterials.add(launchMaterial);
+  for (const target of world.tagTargets ?? []) {
+    city.attach(makeTagPanel(THREE, target, ownedGeometries, ownedMaterials));
+  }
+  for (const marker of world.launchMarkers ?? []) {
+    city.attach(makeLaunchMarker(THREE, marker, launchMaterial, ownedGeometries));
+  }
 }
 
 export function createPlanarCityScene(THREE, layout, world, assets) {
@@ -408,6 +549,7 @@ export function createPlanarCityScene(THREE, layout, world, assets) {
     city.userData.tileGroups = tiles;
     city.userData.layoutSize = [layout.width, layout.depth];
     makeAttachmentApi(THREE, city, tiles, attachments);
+    addAuthoredAttachments(THREE, city, world, ownedGeometries, ownedMaterials);
     city.dispose = () => {
       if (city.userData.disposed) return;
       city.userData.disposed = true;
