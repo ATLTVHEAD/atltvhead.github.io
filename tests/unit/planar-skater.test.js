@@ -4,6 +4,7 @@ import { createPlanarSkater, stepSkaterOnPlanarCity } from '../../js/game/core/p
 import { createPlanarCityLayout } from '../../js/game/world/planar-city-layout.js';
 import { compilePlanarWorld } from '../../js/game/world/planar-city-surfaces.js';
 import { queryPlanarSupport, sweepPlanarSkater } from '../../js/game/world/planar-city-queries.js';
+import { compileSkatePath } from '../../js/game/world/skate-paths.js';
 
 const manifest = JSON.parse(readFileSync(new URL('../../assets/game/manifest.json', import.meta.url)));
 const world = compilePlanarWorld(createPlanarCityLayout({ assetManifest: manifest }));
@@ -76,6 +77,10 @@ function unitState(state) {
 }
 
 describe('planar city skater', () => {
+  it('skater_planarDescriptorAdvertisesTuningVersionTwo', () => {
+    expect(world.descriptor.tuningVersion).toBe(2);
+  });
+
   it('skater_planarOriginAndAirborneAreFinite', () => {
     const created = createPlanarSkater(world);
     const origin = {
@@ -101,6 +106,14 @@ describe('planar city skater', () => {
     expect(result.state.position[2]).toBeGreaterThan(0);
     expect(result.state.gravityUp).toEqual([0, 1, 0]);
     expect(result.state.supportNormal).toEqual([0, 1, 0]);
+  });
+
+  it('skater_authoredLineSpawnStartsOnItsConnectedLaunchDeck', () => {
+    const lineSpawn = createPlanarSkater(world, 'spawn-skate-line');
+
+    expect(lineSpawn.position).toEqual([124, 0, 80]);
+    expect(lineSpawn.surfaceId).toBe('line-smooth-crest-exit:deck');
+    expect(lineSpawn.mode).toBe('grounded');
   });
 
   it('skater_lapReturnsOnBothAxesAndDirections', () => {
@@ -172,7 +185,7 @@ describe('planar city skater', () => {
     expect(bail.state.mode).toBe('bailed');
     expect(bail.state.bailRemainingMs).toBe(500);
     expect(bail.events).toEqual([{
-      eventId: 'wall-session:18:1', tick: 18, type: 'bailed', hitId: wall.building.id,
+      eventId: 'wall-session:18:1', eventIndex: 1, tick: 18, type: 'bailed', hitId: wall.building.id,
     }]);
     let bailed = bail.state;
     for (let index = 0; index < 4; index += 1) {
@@ -184,6 +197,7 @@ describe('planar city skater', () => {
     expect(respawned.mode).toBe('grounded');
     expect(respawned.spawnId).toBe(state.spawnId);
     expect(respawned.position).toEqual(createPlanarSkater(world, state.spawnId).position);
+    expect(respawned.eventIndex).toBe(1);
   });
 
   it('skater_rampJumpBufferAndCoyoteBoundaries', () => {
@@ -199,7 +213,7 @@ describe('planar city skater', () => {
     expect(jumped.state.position[1]).toBeCloseTo(jumped.state.groundHeight + 0.53, 8);
     expect(jumped.state.verticalSpeed).toBeCloseTo(4.6, 8);
     expect(jumped.events).toEqual([{
-      eventId: 'ramp-session:11:1', tick: 11, type: 'jumped',
+      eventId: 'ramp-session:11:1', eventIndex: 1, tick: 11, type: 'jumped',
       surfaceId: 'plaza-ramp',
     }]);
     expect(jumped.state.gravityUp).toEqual([0, 1, 0]);
@@ -233,6 +247,200 @@ describe('planar city skater', () => {
       expect(result.events.some((event) => event.type === 'jumped')).toBe(shouldJump);
       if (shouldJump) expect(result.state.verticalSpeed).toBeCloseTo(5.776, 8);
     }
+  });
+
+  it('launch_crossingAt3GetsUpwardSpeed4OnceWithoutCapturingItsSourcePath', () => {
+    const approach = planarState([131.95, 1.2, 80], [1, 0, 0], {
+      surfaceId: 'line-smooth-crest-exit:deck',
+      spawnId: 'spawn-skate-line',
+      speed: 3,
+      tick: 8,
+      sessionId: 'launch-boundary',
+    });
+    const result = stepSkaterOnPlanarCity(approach, NEUTRAL, 1 / 60, world, {
+      coastingDrag: 0,
+    });
+
+    expect(result.state.mode).toBe('airborne');
+    expect(result.state.verticalSpeed).toBe(4);
+    expect(result.state.speed).toBe(3);
+    expect(result.state.railId).toBeNull();
+    expect(result.state.launchLockId).toBe('launch-lip-smooth-crest');
+    expect(result.state.eventIndex).toBe(1);
+    expect(result.events).toEqual([{
+      eventId: 'launch-boundary:9:1',
+      eventIndex: 1,
+      tick: 9,
+      type: 'launched',
+      markerId: 'launch-lip-smooth-crest',
+      speed: 3,
+      verticalSpeed: 4,
+    }]);
+  });
+
+  it('launch_manualJumpWinsAndConsumesTheLipCrossing', () => {
+    const approach = planarState([131.95, 1.2, 80], [1, 0, 0], {
+      surfaceId: 'line-smooth-crest-exit:deck',
+      spawnId: 'spawn-skate-line',
+      speed: 3,
+      tick: 14,
+      sessionId: 'manual-lip',
+    });
+    const result = stepSkaterOnPlanarCity({ ...approach, eventIndex: 6 }, {
+      ...NEUTRAL,
+      jumpPressed: true,
+    }, 1 / 60, world, { coastingDrag: 0 });
+
+    expect(result.state.mode).toBe('airborne');
+    expect(result.state.verticalSpeed).toBeCloseTo(6 - 14 / 60, 8);
+    expect(result.state.launchLockId).toBe('launch-lip-smooth-crest');
+    expect(result.state.eventIndex).toBe(7);
+    expect(result.events.map((event) => event.type)).toEqual(['jumped']);
+    expect(result.events[0].eventIndex).toBe(7);
+  });
+
+  it('launch_rejectsSpeedBelowThree', () => {
+    const approach = planarState([131.95, 1.2, 80], [1, 0, 0], {
+      surfaceId: 'line-smooth-crest-exit:deck',
+      spawnId: 'spawn-skate-line',
+      speed: 2.999,
+    });
+    const result = stepSkaterOnPlanarCity(approach, NEUTRAL, 1 / 60, world, {
+      coastingDrag: 0,
+    });
+
+    expect(result.state.mode).toBe('grounded');
+    expect(result.events.some((event) => event.type === 'launched')).toBe(false);
+  });
+
+  it('launch_requiresAnAuthoredMarker', () => {
+    const approach = planarState([131.95, 1.2, 80], [1, 0, 0], {
+      surfaceId: 'line-smooth-crest-exit:deck',
+      spawnId: 'spawn-skate-line',
+      speed: 3,
+    });
+    const unmarkedWorld = { ...world, launchMarkers: [] };
+    const result = stepSkaterOnPlanarCity(approach, NEUTRAL, 1 / 60, unmarkedWorld, {
+      coastingDrag: 0,
+    });
+
+    expect(result.state.mode).toBe('grounded');
+    expect(result.state.launchLockId).toBeNull();
+    expect(result.events.some((event) => event.type === 'launched')).toBe(false);
+  });
+
+  it('launch_reverseCrossingDoesNotFire', () => {
+    const approach = planarState([132.05, 1.2, 80], [-1, 0, 0], {
+      surfaceId: 'line-smooth-crest-exit:deck',
+      spawnId: 'spawn-skate-line',
+      speed: 3,
+    });
+    const result = stepSkaterOnPlanarCity(approach, NEUTRAL, 1 / 60, world, {
+      coastingDrag: 0,
+    });
+
+    expect(result.state.mode).toBe('grounded');
+    expect(result.state.launchLockId).toBeNull();
+    expect(result.events.some((event) => event.type === 'launched')).toBe(false);
+  });
+
+  it('launch_markerImageFiresOnlyOnceAcrossTheSeam', () => {
+    const marker = world.launchMarkers.find((entry) => entry.id === 'launch-lip-smooth-crest');
+    const seamWorld = {
+      ...world,
+      launchMarkers: [{ ...marker, point: [0, marker.point[1], marker.point[2]] }],
+    };
+    const approach = {
+      ...createPlanarSkater(seamWorld, 'spawn-skate-line'),
+      position: [255.95, 1.2, 80],
+      forward: [1, 0, 0],
+      speed: 3,
+      mode: 'grounded',
+      surfaceId: 'line-smooth-crest-exit:deck',
+      groundHeight: 1.2,
+      tick: 31,
+      sessionId: 'seam-lip',
+    };
+    const result = stepSkaterOnPlanarCity(approach, NEUTRAL, 1 / 60, seamWorld, {
+      coastingDrag: 0,
+    });
+
+    expect(result.events.filter((event) => event.type === 'launched')).toHaveLength(1);
+    expect(result.events[0]).toMatchObject({
+      eventId: 'seam-lip:32:1',
+      eventIndex: 1,
+      markerId: 'launch-lip-smooth-crest',
+    });
+    expect(result.state.launchLockId).toBe('launch-lip-smooth-crest');
+  });
+
+  it('grind_captureUsesTheActualAirborneMotionSweep', () => {
+    const approach = {
+      ...createPlanarSkater(world, 'spawn-skate-line'),
+      position: [133.49, 2.1, 80],
+      forward: [1, 0, 0],
+      speed: 3,
+      mode: 'airborne',
+      groundHeight: 0,
+      verticalSpeed: 0,
+      coyoteAgeMs: 101,
+      tick: 20,
+      sessionId: 'air-capture',
+    };
+    const result = stepSkaterOnPlanarCity(approach, NEUTRAL, 1 / 60, world);
+
+    expect(result.state.mode).toBe('grinding');
+    expect(result.state.railId).toBe('line-pipe-capture');
+    expect(result.state.railDirection).toBe(1);
+    expect(result.events.map((event) => event.type)).toEqual(['grindStarted']);
+    expect(result.events[0]).toMatchObject({
+      eventId: 'air-capture:21:1',
+      eventIndex: 1,
+      pathId: 'line-pipe-capture',
+      direction: 1,
+    });
+  });
+
+  it('grind_planarUpAndSeamAdjacentSweepRemainContinuous', () => {
+    const path = compileSkatePath({
+      id: 'seam-line',
+      type: 'rail',
+      gravityUp: [0, 1, 0],
+      points: [[255.8, 1.2, 80], [256.2, 1.2, 80]],
+    });
+    const seamWorld = { ...world, rails: [path] };
+    const approach = {
+      ...createPlanarSkater(seamWorld),
+      position: [255.95, 1.2, 80],
+      forward: [1, 0, 0],
+      speed: 3,
+      mode: 'airborne',
+      groundHeight: 1.2,
+      verticalSpeed: 0,
+      coyoteAgeMs: 101,
+      tick: 10,
+      sessionId: 'seam-grind',
+    };
+    const captured = stepSkaterOnPlanarCity(approach, NEUTRAL, 0.02, seamWorld);
+    const crossed = stepSkaterOnPlanarCity(captured.state, NEUTRAL, 0.02, seamWorld);
+    const continued = stepSkaterOnPlanarCity(crossed.state, NEUTRAL, 0.02, seamWorld);
+    const wrappedDistance = (first, second) => {
+      const distance = Math.abs(first - second);
+      return Math.min(distance, 256 - distance);
+    };
+
+    expect(captured.state.mode).toBe('grinding');
+    expect(captured.state.railId).toBe('seam-line');
+    expect(crossed.state.mode).toBe('grinding');
+    expect(crossed.state.position[0]).toBeGreaterThanOrEqual(0);
+    expect(crossed.state.position[0]).toBeLessThan(0.1);
+    expect(wrappedDistance(crossed.state.position[0], captured.state.position[0]))
+      .toBeLessThan(0.1);
+    expect(continued.state.mode).toBe('grinding');
+    expect(wrappedDistance(continued.state.position[0], crossed.state.position[0])).toBeLessThan(0.1);
+    expect(continued.state.railDistance - crossed.state.railDistance).toBeCloseTo(0.05928, 8);
+    expect([captured.state.position[1], crossed.state.position[1], continued.state.position[1]])
+      .toEqual([1.2, 1.2, 1.2]);
   });
 
   it('skater_doglegTraversalUsesRealQueries', () => {
@@ -299,7 +507,7 @@ describe('planar city skater', () => {
     expect(result.state.tick).toBe(23);
     expect(result.state.sessionId).toBe('recovery-session');
     expect(result.events).toEqual([{
-      eventId: 'recovery-session:23:1', tick: 23, type: 'bailed', reason: 'invalid-state',
+      eventId: 'recovery-session:23:1', eventIndex: 1, tick: 23, type: 'bailed', reason: 'invalid-state',
     }]);
   });
 

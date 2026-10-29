@@ -4,7 +4,7 @@ export const WORLD_DESCRIPTOR = Object.freeze({
   version: 3,
   seed: 2026,
   radius: 32,
-  tuningVersion: 1,
+  tuningVersion: 2,
   planar: PLANAR_WORLD_SIZE,
 });
 

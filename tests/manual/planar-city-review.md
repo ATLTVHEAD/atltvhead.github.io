@@ -1,6 +1,8 @@
 # Planar city review — human approval pending
 
-**Status: awaiting user review.** Automated evidence is not visual or physical acceptance. Do not mark the planar city approved or continue into the mechanics/comic-art work until the user has reviewed these captures.
+**Status: awaiting user review.** Automated evidence is not visual or physical acceptance. The user directed implementation to continue before reviewing the city; that scheduling direction does not approve the planar city. Keep visual/feel acceptance pending and do not claim human approval from these captures or tests.
+
+The consolidated list of outstanding reviews and acceptance gates is in [`docs/reviews/2026-10-29-skate-city-pending-review-gates.md`](../../docs/reviews/2026-10-29-skate-city-pending-review-gates.md).
 
 The captures below are local, git-ignored files under `artifacts/skate-progress/`; they are not committed binaries. Automated captures use Chromium at 1280 × 800 unless the filename says otherwise.
 
@@ -34,7 +36,7 @@ P8 adds mounted browser checks for:
 
 ## Verification snapshot
 
-- `npm test`: 218 unit tests passed (27 files); worker suite had no test files and exited 0 by configuration; 46/46 browser tests passed using the default four workers.
+- Latest `npm test`: 241 unit tests passed (28 files); worker suite had no test files and exited 0 by configuration; 49/49 browser tests passed using the default four workers. The existing stale-Jump browser assertion now latches simulation state across animation frames; this improves observation under load and does not represent city approval.
 - `npm run build`, `node --check tests/e2e/planar-city.spec.js`, and `git diff --check`: exit 0. Asset source check: 12 local assets verified.
 - Render metrics: 108 retained asset instances, 171 imported asset mesh instances; center view 6 draw calls / 3,442 triangles; seam view 4 / 448. Play camera far = 512; fog near/far = 160/208.
 - Cleanup observations: forced failed scene boot emitted 75 geometry-dispose events; Retry retained both scenes (8 preview buildings and 9 play tiles). Disposing a peer preview scene caused 0 premature shared-template geometry disposals.
@@ -49,4 +51,4 @@ Please review the images and, if useful, try the city locally. Does the post-joi
 3. Do X/Z seam travel and the corner view feel continuous, without an obvious pop or camera pan?
 4. Is the globe preview still the expected entry/leave experience?
 
-**Decision: pending user response.** Mechanics, comic-art approval, physical gamepad/phone acceptance, and any scope beyond P8 remain open.
+**City decision: pending user review.** P8 city visual/feel, Task 10 comic-art, physical gamepad/phone acceptance, and final acceptance remain open. Task 5 policy decisions and automated implementation are recorded separately.

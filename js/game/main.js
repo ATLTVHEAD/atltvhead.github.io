@@ -106,6 +106,10 @@ export function startSkateGame({ root, THREE, assets = null }) {
     registerCleanup(() => playCity?.dispose?.());
     planarLayout = createPlanarCityLayout({ assetManifest: assets?.manifest ?? null });
     playWorld = compilePlanarWorld(planarLayout);
+    const requestedTestSpawnId = new URLSearchParams(window.location.search).get('testSpawnId');
+    const planarSpawnId = playWorld.spawnPoints?.some((spawn) => spawn.id === requestedTestSpawnId)
+      ? requestedTestSpawnId
+      : undefined;
     playCity = createPlanarCityScene(THREE, planarLayout, playWorld, assets);
     const customizationForm = root.querySelector('#customization-form');
     avatar = createTvheadAvatar(
@@ -321,7 +325,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
     session = createGameSession({
       initialState: initialSkaterState,
       resetState: () => activeWorld === playWorld
-        ? createPlanarSkater(playWorld)
+        ? createPlanarSkater(playWorld, planarSpawnId)
         : createCitySkater(world),
       input,
       step: (state, inputFrame, deltaSeconds) => (activeWorld === playWorld

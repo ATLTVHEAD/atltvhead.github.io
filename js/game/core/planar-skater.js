@@ -8,6 +8,9 @@ import { CITY_SKATER_TUNING } from './city-skater.js';
 import { normalizeInputFrame } from '../input/actions.js';
 import { wrapPosition } from './wrap-math.js';
 import { queryPlanarSupport, sweepPlanarSkater } from '../world/planar-city-queries.js';
+import { stepLaunch } from './launch-state.js';
+import { stepGrind } from './grind-state.js';
+import { SKATE_TUNING } from '../shared/skate-tuning.js';
 
 const UP = Object.freeze([0, 1, 0]);
 const MODES = new Set(['grounded', 'airborne', 'grinding', 'bailed']);
@@ -81,6 +84,12 @@ export function createPlanarSkater(world, spawnId) {
     bailRemainingMs: 0,
     tick: 0,
     sessionId: 'local',
+    eventIndex: 0,
+    launchLockId: null,
+    railDirection: 1,
+    balance: 0,
+    grindAgeMs: 0,
+    recaptureRemainingMs: 0,
   };
 }
 
@@ -104,8 +113,11 @@ function cloneState(state) {
 }
 
 function eventRecord(state, type, index, context = {}) {
+  const eventIndex = Number.isSafeInteger(state.eventIndex) ? state.eventIndex + 1 : 1;
+  state.eventIndex = eventIndex;
   return {
-    eventId: `${state.sessionId ?? 'local'}:${state.tick}:${index + 1}`,
+    eventId: `${state.sessionId ?? 'local'}:${state.tick}:${eventIndex}`,
+    eventIndex,
     tick: state.tick,
     type,
     ...context,
@@ -116,6 +128,7 @@ function safeRecovery(world, state, nextTick, reason) {
   const recovered = createPlanarSkater(world, state?.spawnId);
   recovered.tick = nextTick;
   recovered.sessionId = typeof state?.sessionId === 'string' ? state.sessionId : 'local';
+  recovered.eventIndex = Number.isSafeInteger(state?.eventIndex) ? state.eventIndex : 0;
   return {
     state: recovered,
     events: [eventRecord(recovered, 'bailed', 0, { reason })],
@@ -126,6 +139,7 @@ function respawn(world, state, nextTick) {
   const recovered = createPlanarSkater(world, state.spawnId);
   recovered.tick = nextTick;
   recovered.sessionId = state.sessionId ?? 'local';
+  recovered.eventIndex = Number.isSafeInteger(state.eventIndex) ? state.eventIndex : 0;
   return recovered;
 }
 
@@ -143,8 +157,44 @@ function wrapStatePosition(state, world) {
   return state;
 }
 
+function advanceDismounted(state, deltaSeconds, world, tuning, events) {
+  if (deltaSeconds <= 0) return state;
+  const height = Math.max(0, state.position[1] - state.groundHeight);
+  const vertical = integrateVerticalMotion(height, state.verticalSpeed, deltaSeconds, tuning.gravity);
+  const targetY = state.groundHeight + vertical.height;
+  const moved = [
+    state.position[0] + state.forward[0] * state.speed * deltaSeconds,
+    targetY,
+    state.position[2] + state.forward[2] * state.speed * deltaSeconds,
+  ];
+  const collision = sweepPlanarSkater(world, state.position, moved, tuning.bodyRadius);
+  const resolved = collision.blocked
+    ? [collision.position[0], targetY, collision.position[2]]
+    : collision.position;
+  const support = queryPlanarSupport(world, resolved, {
+    maxDrop: 4,
+    maxRise: 4,
+    previousSurfaceId: state.surfaceId,
+  });
+  const crossedSupport = support && vertical.verticalSpeed <= 0
+    && resolved[1] <= support.point[1] + 0.02;
+  state.position = crossedSupport ? [...support.point] : resolved;
+  state.verticalSpeed = crossedSupport ? 0 : vertical.verticalSpeed;
+  state.mode = crossedSupport ? 'grounded' : 'airborne';
+  state.supportNormal = crossedSupport ? [...support.surfaceNormal] : [...UP];
+  if (crossedSupport) {
+    state.surfaceId = support.surfaceId;
+    state.groundHeight = support.point[1];
+    state.coyoteAgeMs = 0;
+    events.push(eventRecord(state, 'landed', events.length, {
+      surfaceId: support.surfaceId,
+    }));
+  }
+  return state;
+}
+
 export function stepSkaterOnPlanarCity(state, rawInput, deltaSeconds, world, tuningOverrides = {}) {
-  const tuning = { ...CITY_SKATER_TUNING, ...tuningOverrides };
+  const tuning = { ...CITY_SKATER_TUNING, ...SKATE_TUNING, ...tuningOverrides };
   if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) {
     return { state: cloneState(state), events: [] };
   }
@@ -156,6 +206,9 @@ export function stepSkaterOnPlanarCity(state, rawInput, deltaSeconds, world, tun
   if (!isUsableState(state)) return safeRecovery(world, state, nextTick, 'invalid-state');
 
   const nextState = cloneState(state);
+  const priorMode = nextState.mode;
+  const priorSurfaceId = nextState.surfaceId;
+  const motionFrom = [...nextState.position];
   nextState.tick = nextTick;
   nextState.gravityUp = [...UP];
   if (!finiteVector(nextState.supportNormal)) nextState.supportNormal = [...UP];
@@ -169,6 +222,22 @@ export function stepSkaterOnPlanarCity(state, rawInput, deltaSeconds, world, tun
       state: nextState.bailRemainingMs <= 0 ? respawn(world, nextState, nextTick) : nextState,
       events,
     };
+  }
+
+  if (nextState.mode === 'grinding') {
+    const grind = stepGrind(nextState, input, delta, world, {
+      from: motionFrom,
+      to: [...motionFrom],
+      priorMode,
+      priorSurfaceId,
+    });
+    events.push(...grind.events);
+    let finalState = grind.state;
+    if (finalState.mode === 'airborne' && grind.remainingSeconds > 0) {
+      finalState = advanceDismounted(finalState, grind.remainingSeconds, world, tuning, events);
+    }
+    wrapStatePosition(finalState, world);
+    return { state: finalState, events };
   }
 
   let jumpBufferAgeMs = input.jumpPressed
@@ -316,6 +385,17 @@ export function stepSkaterOnPlanarCity(state, rawInput, deltaSeconds, world, tun
     }
   }
 
-  wrapStatePosition(nextState, world);
-  return { state: nextState, events };
+  const motion = {
+    from: motionFrom,
+    to: [...nextState.position],
+    priorMode,
+    priorSurfaceId,
+    manualJumped: events.some((event) => event.type === 'jumped'),
+  };
+  const launch = stepLaunch(nextState, input, delta, world, motion);
+  events.push(...launch.events);
+  const grind = stepGrind(launch.state, input, delta, world, motion);
+  events.push(...grind.events);
+  wrapStatePosition(grind.state, world);
+  return { state: grind.state, events };
 }

@@ -40,7 +40,7 @@ describe('shared catalogs and contracts', () => {
       version: 3,
       seed: 2026,
       radius: 32,
-      tuningVersion: 1,
+      tuningVersion: 2,
       planar: { width: 256, depth: 256 },
     });
     expect(Object.isFrozen(WORLD_DESCRIPTOR)).toBe(true);

@@ -341,7 +341,7 @@ export function createPlanarCityLayout({ assetManifest } = {}) {
       { id: 'spawn-plaza', surfaceId: 'plaza-central', position: [202, 0, 130], forward: [1, 0, 0], routeId: 'route-plaza-connector' },
       { id: 'spawn-wrap-x', surfaceId: 'street-wrap-x-west', position: [224, 0, 30], forward: [1, 0, 0], routeId: 'route-street-wrap-x-west' },
       { id: 'spawn-wrap-z', surfaceId: 'street-wrap-z-south', position: [20, 0, 248], forward: [0, 0, 1], routeId: 'route-street-wrap-z-south' },
-      { id: 'spawn-skate-line', surfaceId: 'line-landing-runout', position: [120, 0, 80], forward: [1, 0, 0], routeId: 'route-line-landing-runout' },
+      { id: 'spawn-skate-line', surfaceId: 'line-smooth-crest-exit:deck', position: [124, 0, 80], forward: [1, 0, 0], routeId: 'route-line-landing-runout' },
     ],
     defaultSpawnId: 'spawn-plaza',
     landmarks: [{ id: 'landmark-central-plaza', position: [202, 0, 128] }],

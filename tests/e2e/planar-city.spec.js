@@ -704,12 +704,22 @@ test('planarCity_leaveFromOpenControlsPreservesCustomizationWithoutStaleJump', a
 
   await page.getByRole('button', { name: 'Join City' }).click();
   await expect(page.locator('#game-root')).toHaveAttribute('data-game-state', 'playing');
+  await page.evaluate(() => {
+    window.__jumpBufferObserved = false;
+    const sample = () => {
+      const state = window.skateGame?.skaterState;
+      if (state?.mode === 'airborne' && state.jumpBufferAgeMs <= 120) {
+        window.__jumpBufferObserved = true;
+      }
+      if (window.skateGame?.session.getState().mode === 'playing') requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
   await page.keyboard.press('Space');
   await page.waitForFunction(() => window.skateGame.skaterState.mode === 'airborne');
   await page.keyboard.down('Space');
   try {
-    await page.waitForFunction(() => window.skateGame.skaterState.mode === 'airborne'
-      && window.skateGame.skaterState.jumpBufferAgeMs <= 120, null, {
+    await page.waitForFunction(() => window.__jumpBufferObserved === true, null, {
       timeout: 2_000,
       polling: 10,
     });
