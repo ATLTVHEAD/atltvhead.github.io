@@ -63,7 +63,7 @@ Decisions required by the existing code (these clarify, rather than replace, use
 - **Avatar up:** planar simulation supplies `gravityUp:[0,1,0]` in every mode. Grounded pose uses contact normal; airborne pose uses explicit gravity up. Preserve the existing spherical airborne radial fallback instead of trusting a stale spherical support normal.
 - **Budget:** merging compatible geometry is an optimization, not permission to drop neighboring buildings or ignore ≤150. Separate merging by actual material/attribute signatures, preserve maps, and measure the resulting scene; “six materials” is not a guaranteed count.
 
-## P1: Pure periodic coordinate math
+## Task 1: P1 — Pure periodic coordinate math
 
 **Files:** Create `js/game/core/wrap-math.js`, `tests/unit/wrap-math.test.js`.
 
@@ -84,7 +84,7 @@ Decisions required by the existing code (these clarify, rather than replace, use
 - [ ] **4. Verify GREEN:** Focused command then `npm test`; record actual counts, including whether Worker tests are empty.
 - [ ] **5. Commit:** Stage only the two P1 files; `git commit -m "feat: add deterministic torus coordinate math"`.
 
-## P2: Static irregular routes and building-defined alleys
+## Task 2: P2 — Static irregular routes and building-defined alleys
 
 **Files:** Create `js/game/world/planar-city-layout.js`, `tests/unit/planar-city-layout.test.js`; modify `js/game/world/asset-placements.js`, `tests/unit/asset-placements.test.js`.
 
@@ -112,7 +112,7 @@ Placements use existing `{id,assetId,position,scale,size,sourceOrigin,axes}` con
 - [ ] **4. Verify GREEN:** Focused command then `npm test`; measure real passage/corner clearance and record the authored building count and route widths in the ledger.
 - [ ] **5. Commit:** Stage only P2 files; `git commit -m "feat: author irregular planar streets and enclosed alley turns"`.
 
-## P3: Shared planar surfaces, supports and seam-exact sweeps
+## Task 3: P3 — Shared planar surfaces, supports and seam-exact sweeps
 
 **Files:** Create `js/game/world/planar-city-surfaces.js`, `js/game/world/planar-city-queries.js`, `tests/unit/planar-city-surfaces.test.js`, `tests/unit/planar-city-queries.test.js`; modify `js/game/world/city-queries.js` only to export `sweepBox`.
 
@@ -139,7 +139,7 @@ with stable support IDs connected to the corresponding eligible paths. Retain
 - [ ] **4. Verify GREEN:** Focused command plus `npm run test:unit -- tests/unit/city-surfaces.test.js tests/unit/city-skater.test.js`, then `npm test`; spherical behavior remains unchanged.
 - [ ] **5. Commit:** Stage only P3 files; `git commit -m "feat: compile planar contacts and periodic collision queries"`.
 
-## P4: Planar fixed-step skating with existing tuning
+## Task 4: P4 — Planar fixed-step skating with existing tuning
 
 **Files:** Create `js/game/core/planar-skater.js`, `tests/unit/planar-skater.test.js`; extend `tests/unit/avatar-pose.test.js`, modify `js/game/render/avatar-pose.js`.
 
@@ -155,7 +155,7 @@ with stable support IDs connected to the corresponding eligible paths. Retain
 - [ ] **4. Verify GREEN:** Focused command plus `npm run test:unit -- tests/unit/city-skater.test.js tests/unit/skater-simulation.test.js`, then `npm test`.
 - [ ] **5. Commit:** Stage only P4 files; `git commit -m "feat: add planar skating with periodic movement and upright poses"`.
 
-## P5: Nine-tile rendering and explicit shared ownership
+## Task 5: P5 — Nine-tile rendering and explicit shared ownership
 
 **Files:** Create `js/game/render/planar-city-scene.js`, `tests/unit/planar-city-scene.test.js`, `tests/e2e/planar-render.spec.js`; extend `tests/unit/game-assets.test.js` for simultaneous preview/play retention.
 
@@ -173,7 +173,7 @@ source-resource disposal. This is the update contract used by original Task7.
 - [ ] **4. Verify GREEN:** Focused commands then `npm test`; record actual instance, triangle and draw-call counts, not an assumed six-material total. If ≤150 cannot be reached without changing visual/contact requirements, stop for a measured tradeoff instead of deleting neighbors or dropping assertions.
 - [ ] **5. Commit:** Stage only P5 files; `git commit -m "feat: render shared periodic city tiles and replicated attachments"`.
 
-## P6: Seam-continuous camera and Join/Leave scene composition
+## Task 6: P6 — Seam-continuous camera and Join/Leave scene composition
 
 **Files:** Modify `js/game/render/follow-camera.js`, `js/game/main.js`, `js/game/shared/world-config.js`, `tests/unit/follow-camera.test.js`, `tests/unit/shared-contracts.test.js`, `tests/e2e/local-skating.spec.js`, `tests/e2e/city-world.spec.js`; create `tests/e2e/planar-city.spec.js`. Extend `tests/e2e/game-assets.spec.js` for two-scene retry/cleanup. Preserve `tests/e2e/visible-city.spec.js` menu assertions.
 
@@ -188,7 +188,7 @@ source-resource disposal. This is the update contract used by original Task7.
 - [ ] **5. Verify GREEN:** Run both focused commands plus `npm run test:e2e -- tests/e2e/local-skating.spec.js tests/e2e/city-world.spec.js tests/e2e/visible-city.spec.js tests/e2e/game-assets.spec.js`, then `npm test`. For laps, navigate from plaza using normal input, establish a cruising lap-start reference, then measure one256-unit circuit; acceleration time is not part of the21.3-second cruise estimate. Capture seams on both axes and at a corner, portrait390×844 and landscape844×390, plus a wide desktop view; inspect repeated-world boundaries against the fog/background, not only finite state.
 - [ ] **6. Commit:** Stage only P6 files; `git commit -m "feat: switch joined play to a seamless planar city"`.
 
-## P7: Finish original Task 4's canonical paths, launch records and tag targets
+## Task 7: P7 — Finish original Task 4's canonical paths, launch records and tag targets
 
 **Files:** Modify `js/game/world/skate-paths.js`, `tests/unit/skate-paths.test.js`, `js/game/world/planar-city-layout.js`, `js/game/world/planar-city-surfaces.js`, `js/game/render/planar-city-scene.js`; create `js/game/world/tag-targets.js`, `tests/unit/tag-targets.test.js`, `tests/fixtures/skate-line.js`, `tests/e2e/authored-city.spec.js`.
 
@@ -213,7 +213,7 @@ Tag target: `{id,triangles:[{id,points}],frame:{origin,right,up,normal},polygon}
 - [ ] **4. Verify GREEN:** Focused commands plus `npm run test:e2e -- tests/e2e/planar-city.spec.js tests/e2e/local-skating.spec.js tests/e2e/visible-city.spec.js`, then `npm test`; record actual route IDs and screenshots of the near-spawn line, dogleg and tag-panel normals.
 - [ ] **5. Commit:** Stage only P7 files; `git commit -m "feat: author planar skate lines and validated wall targets"`.
 
-## P8: Integrated evidence and human city-review gate
+## Task 8: P8 — Integrated evidence and human city-review gate
 
 **Files:** Extend `tests/e2e/planar-city.spec.js`, `tests/manual/device-matrix.md`; create `tests/manual/planar-city-review.md`; update this plan and the local ledger with evidence, not assumed approval.
 
