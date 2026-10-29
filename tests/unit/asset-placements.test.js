@@ -8,6 +8,7 @@ import { sweepSkater } from '../../js/game/world/city-queries.js';
 import { createCitySkater, stepSkaterOnCity } from '../../js/game/core/city-skater.js';
 import { createNeutralInputFrame } from '../../js/game/input/actions.js';
 import { createTvheadAvatar } from '../../js/game/render/avatar.js';
+import { BUILDING_SCALE, placePlanarCityAssets } from '../../js/game/world/asset-placements.js';
 
 const manifest = JSON.parse(readFileSync(new URL('../../assets/game/manifest.json', import.meta.url)));
 
@@ -97,5 +98,63 @@ describe('visible asset placement', () => {
       }
     }
     expect(world.radius).toBe(32);
+  });
+});
+
+describe('planar asset placement', () => {
+  it('planarPlacements_useHumanScaleBoundsAndConstantUp', () => {
+    const layout = placePlanarCityAssets({
+      width: 256,
+      depth: 256,
+      buildings: [{ id: 'facade-a', assetId: 'building-c', position: [10, 0, 20], forward: [1, 0, 0] }],
+      props: [{ id: 'container', assetId: 'shipping-container-a', position: [40, 0, 50], forward: [0, 0, 1], scale: 3 }],
+    }, manifest);
+    const building = layout.buildings[0];
+    const prop = layout.props[0];
+    const buildingBounds = manifest.assets.find((asset) => asset.id === 'building-c').bounds;
+
+    expect(BUILDING_SCALE).toBe(17);
+    expect(building.normal).toEqual([0, 1, 0]);
+    expect(building.placement.size).toEqual(buildingBounds.max.map((value, axis) => (
+      (value - buildingBounds.min[axis]) * 17
+    )));
+    expect(building.placement.position).toEqual([10, 0, 20]);
+    expect(building.placement.sourceOrigin).toEqual([
+      (buildingBounds.min[0] + buildingBounds.max[0]) / 2,
+      buildingBounds.min[1],
+      (buildingBounds.min[2] + buildingBounds.max[2]) / 2,
+    ]);
+    expect(building.placement.axes).toEqual([[0, 0, -1], [0, 1, 0], [1, 0, 0]]);
+    expect(prop.placement.scale).toBe(3);
+    expect(layout.assetPlacements).toHaveLength(2);
+  });
+
+  it('planarPlacements_rejectMissingBoundsAndInvalidHeading', () => {
+    expect(() => placePlanarCityAssets({ buildings: [{ id: 'bad', assetId: 'missing', position: [0, 0, 0], forward: [0, 0, 1] }] }, manifest))
+      .toThrow(/Missing asset bounds: missing/);
+    expect(() => placePlanarCityAssets({ buildings: [{ id: 'bad', assetId: 'building-a', position: [0, 0, 0], forward: [0, 0, 0] }] }, manifest))
+      .toThrow(/finite planar position and nonzero heading/);
+  });
+
+  it('planarPlacements_anchorsFacadeByTrueFootprintToRouteWall', () => {
+    const layout = placePlanarCityAssets({
+      width: 256,
+      depth: 256,
+      surfaces: [{
+        id: 'alley',
+        sections: [
+          { center: [0, 0, 0], left: [0, 0, 1], right: [0, 0, -1] },
+          { center: [10, 0, 0], left: [10, 0, 1], right: [10, 0, -1] },
+        ],
+      }],
+      buildings: [{ id: 'facade', assetId: 'building-d', wall: {
+        surfaceId: 'alley', sectionIndex: 0, side: 'left', alongAxis: 'x', facadeGap: 0.3,
+      } }],
+    }, manifest);
+    const building = layout.buildings[0];
+
+    expect(building.placement.axes[0]).toEqual([1, 0, 0]);
+    expect(building.placement.position[1]).toBe(0);
+    expect(building.placement.position[2]).toBeCloseTo(1 + building.placement.size[2] / 2 + 0.3);
   });
 });
