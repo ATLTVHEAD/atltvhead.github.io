@@ -44,6 +44,36 @@ describe('applyAvatarPose', () => {
     expect(avatar.userData.simulationPose).toMatchObject({ mode: 'airborne', speed: 5 });
   });
 
+  it('avatar_planarAirUsesExplicitUpWithoutChangingSphericalAir', () => {
+    const avatar = createTvheadAvatar(THREE, { color: '#ff006e', accessoryIds: [] });
+    const planarState = {
+      position: [200, 3, 40],
+      forward: [0, 0, 1],
+      supportNormal: [0, 1, 0],
+      gravityUp: [0, 1, 0],
+      speed: 4,
+      mode: 'airborne',
+    };
+
+    applyAvatarPose(avatar, planarState);
+    const planarUp = new THREE.Vector3(0, 1, 0)
+      .applyQuaternion(avatar.quaternion).normalize();
+    expect(planarUp.dot(new THREE.Vector3(0, 1, 0))).toBeGreaterThan(0.999);
+
+    const sphericalPosition = [12, 10, 4];
+    const sphericalState = {
+      position: sphericalPosition,
+      forward: [0, 0, -1],
+      supportNormal: [0, 1, 0],
+      speed: 4,
+      mode: 'airborne',
+    };
+    applyAvatarPose(avatar, sphericalState);
+    const sphericalUp = new THREE.Vector3(0, 1, 0)
+      .applyQuaternion(avatar.quaternion).normalize();
+    expect(sphericalUp.dot(new THREE.Vector3(...normalize3(sphericalPosition)))).toBeGreaterThan(0.999);
+  });
+
   it('avatarPose_alignsWheelsToTheRenderedRampSupportPlane', () => {
     const world = compileCityWorld(createCityLayout({ radius: 16, seed: 2026 }));
     const ramp = world.surfaces.find((surface) => surface.type === 'ramp');

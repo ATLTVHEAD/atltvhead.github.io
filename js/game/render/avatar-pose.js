@@ -12,13 +12,22 @@ export function applyAvatarPose(avatar, state, renderTime = 0, surfaceNormal = n
     throw new TypeError('An avatar simulation pose is required.');
   }
   const THREE = avatar.userData.THREE;
-  const gravityUp = normalize3(state.position);
-  const contactNormal = finiteVector(surfaceNormal) ? surfaceNormal : state.supportNormal;
-  const candidateSupportUp = state.mode === 'grounded' && finiteVector(contactNormal)
-    ? normalize3(contactNormal)
+  const explicitSurfaceUp = finiteVector(surfaceNormal) ? normalize3(surfaceNormal) : [0, 0, 0];
+  const groundedSupportUp = state.mode === 'grounded' && finiteVector(state.supportNormal)
+    ? normalize3(state.supportNormal)
     : [0, 0, 0];
-  const hasSupportFrame = !candidateSupportUp.every((value) => value === 0);
-  const up = hasSupportFrame ? candidateSupportUp : gravityUp;
+  const explicitGravityUp = finiteVector(state.gravityUp) ? normalize3(state.gravityUp) : [0, 0, 0];
+  const radialUp = normalize3(state.position);
+  const hasExplicitSurface = explicitSurfaceUp.some((value) => value !== 0);
+  const hasGroundedSupport = groundedSupportUp.some((value) => value !== 0);
+  const hasSupportFrame = hasExplicitSurface || hasGroundedSupport;
+  const up = hasExplicitSurface
+    ? explicitSurfaceUp
+    : hasGroundedSupport
+      ? groundedSupportUp
+      : explicitGravityUp.some((value) => value !== 0)
+        ? explicitGravityUp
+        : radialUp;
   const frame = makeSurfaceFrame(up, state.forward);
   const right = new THREE.Vector3(...frame.right).negate();
   const modelUp = new THREE.Vector3(...frame.up);
