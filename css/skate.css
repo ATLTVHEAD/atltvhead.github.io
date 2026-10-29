@@ -288,6 +288,65 @@ kbd {
     color: #f8f5ff;
 }
 
+.play-feedback {
+    display: grid;
+    gap: 0.25rem;
+    margin: 0.55rem 0 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid rgba(83, 237, 255, 0.26);
+    border-radius: 0.6rem;
+    background: rgba(7, 9, 20, 0.58);
+    font-size: 0.78rem;
+}
+
+.play-score-row,
+.play-balance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.play-score-row p,
+.play-chain,
+.play-last-action {
+    margin: 0;
+}
+
+.play-score-row strong,
+.play-chain strong {
+    color: #53edff;
+    font-variant-numeric: tabular-nums;
+}
+
+.play-balance-row {
+    color: #d5d2e2;
+}
+
+.play-balance-row meter {
+    width: 4.25rem;
+    height: 0.65rem;
+}
+
+.play-last-action {
+    overflow: hidden;
+    color: #ffd58f;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 #open-controls, .controls-panel button {
     min-height: 44px;
     padding: 0.5rem 1rem;
@@ -429,11 +488,57 @@ kbd {
 
     .skate-root[data-game-state='playing'] .skate-card {
         top: calc(4.75rem + env(safe-area-inset-top));
-        right: 0.75rem;
+        left: 0.5rem;
+        right: auto;
         bottom: auto;
-        left: auto;
-        width: min(145px, calc(100% - 1.5rem));
-        padding: 0.65rem 0.75rem;
+        width: min(74px, calc(100% - 1rem));
+        padding: 0.45rem 0.35rem;
+    }
+
+    .play-feedback {
+        gap: 0.2rem;
+        margin: 0.4rem 0;
+        padding: 0.4rem;
+        font-size: 0.68rem;
+    }
+
+    .play-score-row {
+        display: grid;
+        gap: 0.2rem;
+    }
+
+    .play-score-row p {
+        display: flex;
+        gap: 0.2rem;
+        white-space: nowrap;
+    }
+
+    .play-balance-row meter {
+        width: 3.25rem;
+    }
+
+    .play-balance-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    #play-controls p {
+        display: none;
+    }
+
+    #play-controls button,
+    .skate-root[data-game-state='playing'] #leave-city {
+        min-height: 2.3rem;
+        width: 100%;
+        padding: 0.3rem 0.15rem;
+        font-size: 0.68rem;
+    }
+
+    .skate-status[data-game-mode='playing'] {
+        margin: 0.25rem 0 0;
+        font-size: 0.65rem;
+        line-height: 1.2;
     }
 
     .skate-card {
@@ -468,6 +573,37 @@ kbd {
         left: auto;
         width: min(220px, 32vw);
         padding: 0.5rem 0.75rem;
+    }
+
+    #play-controls p {
+        display: none;
+    }
+
+    .play-feedback {
+        gap: 0.15rem;
+        margin: 0.25rem 0 0.4rem;
+        padding: 0.35rem 0.45rem;
+        font-size: 0.68rem;
+    }
+
+    .play-score-row p {
+        white-space: nowrap;
+    }
+
+    .play-balance-row meter {
+        width: 2.6rem;
+    }
+
+    #play-controls button,
+    .skate-root[data-game-state='playing'] #leave-city {
+        min-height: 2.3rem;
+        padding: 0.3rem 0.65rem;
+    }
+
+    .skate-status[data-game-mode='playing'] {
+        margin: 0.25rem 0 0;
+        font-size: 0.65rem;
+        line-height: 1.2;
     }
 
     .touch-stick-zone {

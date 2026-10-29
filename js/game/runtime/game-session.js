@@ -88,6 +88,7 @@ export function createGameSession({
       mode,
       loopState: fixedStep,
       skaterState: fixedStep.currentState,
+      combo: fixedStep.currentState?.combo,
       alpha: result.alpha,
       steps: result.steps,
       elapsedMs,
@@ -185,6 +186,7 @@ export function createGameSession({
       return {
         mode,
         skaterState: fixedStep.currentState,
+        combo: fixedStep.currentState?.combo,
         previousSkaterState: fixedStep.previousState,
         tick: fixedStep.tick,
         elapsedPlayMs: fixedStep.tick * fixedStep.stepMs,

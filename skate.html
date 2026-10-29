@@ -39,16 +39,30 @@
 
             <button id="leave-city" type="button" hidden>Leave City</button>
             <div id="play-controls" hidden>
-                <p data-active-device>Keyboard · W/A/S/D · Space</p>
+                <p data-active-device>Keyboard · W/A/S/D · Space · J Spin · K Grab</p>
                 <button id="open-controls" type="button">Controls</button>
             </div>
+
+            <section id="play-feedback" class="play-feedback" aria-label="Skating score and balance" hidden>
+                <div class="play-score-row">
+                    <p>Pending <strong data-pending-score>0</strong></p>
+                    <p>Banked <strong data-banked-score>0</strong></p>
+                </div>
+                <div class="play-balance-row">
+                    <span data-balance-value>Ready</span>
+                    <meter data-balance-meter min="-1" max="1" low="-0.65" high="0.65" optimum="0" value="0" aria-label="Grind balance"></meter>
+                </div>
+                <p class="play-chain">Chain <strong data-multiplier>×1</strong></p>
+                <p class="play-last-action" data-last-action>No trick yet</p>
+                <p class="visually-hidden" data-feedback-announcement role="status" aria-live="polite" aria-atomic="true"></p>
+            </section>
 
             <section class="skate-help" aria-label="Game controls">
                 <h2>Controls</h2>
                 <ul>
                     <li><kbd>W</kbd> accelerate · <kbd>A</kbd>/<kbd>D</kbd> steer · <kbd>S</kbd> brake</li>
                     <li><kbd>Space</kbd> jump</li>
-                    <li><kbd>J / K</kbd> tricks</li>
+                    <li><kbd>J</kbd> Spin · <kbd>K</kbd> Grab</li>
                     <li><kbd>F</kbd> tag · <kbd>E</kbd> emote</li>
                     <li>Drag to orbit · scroll to zoom</li>
                     <li>Gamepad: left stick move · A jump · X/Y tricks · B tag · D-pad emote · right stick camera</li>
@@ -62,9 +76,9 @@
 
         <section id="controls-panel" class="controls-panel" role="dialog" aria-modal="true" aria-labelledby="controls-title" hidden>
             <h2 id="controls-title">Controls</h2>
-            <p>Keyboard: W/A/S/D to move, jump with Space, J/K for tricks, F to tag, E to wave.</p>
-            <p>Standard gamepad: left stick to move, A to jump, X/Y for tricks, B to tag, D-pad for emotes, right stick for camera.</p>
-            <p>Touch: use the left stick and action buttons.</p>
+            <p>Keyboard: W/A/S/D to move, Space to jump, J for Spin, K for Grab, F to tag, E to wave.</p>
+            <p>Standard gamepad: left stick to move, A to jump, X for Spin, Y for Grab, B to tag, D-pad for emotes, right stick for camera.</p>
+            <p>Touch: use the left stick; Jump, Spin, Grab, Tag and Wave buttons are on the right.</p>
             <details open><summary>Controller diagnostics</summary>
                 <pre data-controller-diagnostics></pre>
                 <label for="controller-select">Controller</label>

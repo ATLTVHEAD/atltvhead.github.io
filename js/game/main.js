@@ -7,7 +7,7 @@ import { createPlanarCityScene } from './render/planar-city-scene.js';
 import { createTvheadAvatar, setAvatarAppearance } from './render/avatar.js';
 import { bindCustomizationForm, readCustomizationForm } from './ui/customization.js';
 import { createCitySkater, stepSkaterOnCity } from './core/city-skater.js';
-import { createPlanarSkater, stepSkaterOnPlanarCity } from './core/planar-skater.js';
+import { createLocalPlayState, stepLocalPlay } from './core/local-play.js';
 import { WORLD_DESCRIPTOR } from './shared/world-config.js';
 import { createKeyboardMouseInput } from './input/keyboard-mouse.js';
 import { createGamepadInput } from './input/gamepad.js';
@@ -16,6 +16,7 @@ import { createInputRouter } from './input/input-router.js';
 import { createGameSession } from './runtime/game-session.js';
 import { bindInputLifecycle } from './runtime/input-lifecycle.js';
 import { bindControlsPanel } from './ui/controls-panel.js';
+import { renderPlayFeedback } from './ui/play-feedback.js';
 import { loadGameAssets } from './render/game-assets.js';
 import { applyAvatarPose } from './render/avatar-pose.js';
 import {
@@ -171,6 +172,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
     const inputStatus = root.querySelector('#input-status');
     const touchControls = root.querySelector('#touch-controls');
     const playControls = root.querySelector('#play-controls');
+    const playFeedback = root.querySelector('#play-feedback');
     let controlsPanel = null;
     let currentGamepadStatus = 'disconnected';
     const touchAvailable = Boolean(
@@ -241,6 +243,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
         if (leaveButton) leaveButton.hidden = true;
         if (touchControls) touchControls.hidden = true;
         if (playControls) playControls.hidden = true;
+        if (playFeedback) playFeedback.hidden = true;
         if (inputStatus) {
           inputStatus.hidden = true;
           inputStatus.textContent = '';
@@ -251,6 +254,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
         }
         showPreviewCamera();
         applyAvatarPose(avatar, session?.getState().skaterState ?? initialSkaterState);
+        renderPlayFeedback(root, { skater: null, combo: null, lastAction: null });
         render();
         lastMode = mode;
         return;
@@ -261,6 +265,7 @@ export function startSkateGame({ root, THREE, assets = null }) {
       if (joinButton) joinButton.hidden = true;
       if (leaveButton) leaveButton.hidden = false;
       if (playControls) playControls.hidden = false;
+      if (playFeedback) playFeedback.hidden = false;
       if (touchControls) touchControls.hidden = !(mode === 'playing' && touchAvailable);
       updateGamepadStatus(currentGamepadStatus);
       if (status) {
@@ -325,17 +330,22 @@ export function startSkateGame({ root, THREE, assets = null }) {
     session = createGameSession({
       initialState: initialSkaterState,
       resetState: () => activeWorld === playWorld
-        ? createPlanarSkater(playWorld, planarSpawnId)
+        ? createLocalPlayState(playWorld, planarSpawnId)
         : createCitySkater(world),
       input,
       step: (state, inputFrame, deltaSeconds) => (activeWorld === playWorld
-        ? stepSkaterOnPlanarCity(state, inputFrame, deltaSeconds, playWorld)
+        ? stepLocalPlay(state, inputFrame, deltaSeconds, playWorld)
         : stepSkaterOnCity(state, inputFrame, deltaSeconds, world)),
       onModeChange: updateUI,
       onFrame(frame) {
         controlsPanel?.render();
         lastEvents = frame.recentEvents;
         const state = frame.skaterState;
+        renderPlayFeedback(root, {
+          skater: state,
+          combo: frame.combo,
+          lastAction: state.lastAction,
+        });
         applyAvatarPose(avatar, state, frame.elapsedMs);
         const cameraInput = input.sampleCameraInput(frame.elapsedMs / 1000);
         cameraState = updateFollowCamera(

@@ -188,9 +188,9 @@ export function bindControlsPanel({ root, session, input, gamepad, onFocusPlay }
     close() { close(); },
     render() {
       const device = input.getActiveDevice();
-      hint.textContent = device === 'gamepad' ? 'Gamepad · stick to move · A to jump'
-        : device === 'touch' ? 'Touch · stick to move · Jump to jump'
-          : 'Keyboard · W/A/S/D · Space';
+      hint.textContent = device === 'gamepad' ? 'Gamepad · stick to move · A jump · X Spin · Y Grab'
+        : device === 'touch' ? 'Touch · stick to move · Spin · Grab'
+          : 'Keyboard · W/A/S/D · Space · J Spin · K Grab';
       const pressed = menuPressed();
       if (panel.hidden && pressed && !menuHeld) open();
       menuHeld = pressed;

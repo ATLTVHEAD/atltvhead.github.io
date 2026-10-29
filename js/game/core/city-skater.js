@@ -112,6 +112,7 @@ export function createCitySkater(world, spawnId) {
     bailRemainingMs: 0,
     tick: 0,
     sessionId: 'local',
+    activeTrick: null,
   };
 }
 
@@ -222,13 +223,6 @@ export function stepSkaterOnCity(state, rawInput, deltaSeconds, world, tuningOve
   } else {
     nextState.jumpBufferAgeMs = jumpBufferAgeMs + deltaMs;
     if (!grounded) coyoteAgeMs += deltaMs;
-  }
-
-  if (input.trickPressed && nextState.mode === 'airborne') {
-    events.push(eventRecord(nextState, 'trickCompleted', events.length, {
-      trickId: input.trickPressed,
-      surfaceId: nextState.surfaceId,
-    }));
   }
 
   const speed = integrateSkaterSpeed(nextState.speed, input, delta, tuning);

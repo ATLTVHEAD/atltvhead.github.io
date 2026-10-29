@@ -90,6 +90,7 @@ export function createPlanarSkater(world, spawnId) {
     balance: 0,
     grindAgeMs: 0,
     recaptureRemainingMs: 0,
+    activeTrick: null,
   };
 }
 
@@ -280,13 +281,6 @@ export function stepSkaterOnPlanarCity(state, rawInput, deltaSeconds, world, tun
   } else {
     nextState.jumpBufferAgeMs = jumpBufferAgeMs + deltaMs;
     if (!grounded) coyoteAgeMs += deltaMs;
-  }
-
-  if (input.trickPressed && nextState.mode === 'airborne') {
-    events.push(eventRecord(nextState, 'trickCompleted', events.length, {
-      trickId: input.trickPressed,
-      surfaceId: nextState.surfaceId,
-    }));
   }
 
   const speed = integrateSkaterSpeed(nextState.speed, input, delta, tuning);

@@ -182,6 +182,33 @@ describe('createGameSession', () => {
     expect(fixture.session.getState().skaterState.ticks).toBe(1);
   });
 
+  it('gameSession_comboIsAReadAliasOfTheAuthoritativeSkaterState', () => {
+    const raf = createRaf();
+    const initialState = { ticks: 0, combo: { pendingBase: 20, multiplier: 1, bankedScore: 0 } };
+    const resetCombo = { pendingBase: 0, multiplier: 1, bankedScore: 0 };
+    const onFrame = vi.fn();
+    const session = createGameSession({
+      initialState,
+      resetState: () => ({ ticks: 0, combo: resetCombo }),
+      step: (state) => ({ state: { ...state, ticks: state.ticks + 1 }, events: [] }),
+      onFrame,
+      documentObject: createDocument(),
+      requestAnimationFrame: raf.request,
+      cancelAnimationFrame: raf.cancel,
+    });
+
+    session.joinLocal();
+    raf.tick(0);
+    expect(session.getState().combo).toBe(resetCombo);
+    expect(session.getState().skaterState.combo).toBe(resetCombo);
+    expect(onFrame.mock.calls.at(-1)[0].combo).toBe(resetCombo);
+
+    session.leave();
+    expect(session.getState().combo).toBe(session.getState().skaterState.combo);
+    expect(session.getState().combo.bankedScore).toBe(0);
+    session.dispose();
+  });
+
   it('gameSession_pauseResumeAndRepeatedJoinRemainBounded', () => {
     const fixture = createFixture();
     expect(fixture.session.joinLocal()).toBe(true);

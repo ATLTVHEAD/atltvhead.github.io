@@ -44,16 +44,25 @@ async function verifyLineCompletion(page) {
     tuningVersion: window.skateGame.playWorld.descriptor.tuningVersion,
   }));
   expect(result.tuningVersion).toBe(2);
-  expect(result.events.map((event) => event.type)).toEqual([
-    'launched', 'grindStarted', 'grindEnded', 'landed',
-  ]);
-  expect(result.events.map((event) => event.eventIndex)).toEqual([1, 2, 3, 4]);
-  expect(new Set(result.events.map((event) => event.eventId)).size).toBe(4);
+  const eventTypes = result.events.map((event) => event.type);
+  expect(eventTypes.slice(0, 2)).toEqual(['launched', 'grindStarted']);
+  expect(eventTypes.at(-2)).toBe('grindEnded');
+  expect(eventTypes.at(-1)).toBe('landed');
+  const progressEvents = result.events.filter((event) => event.type === 'grindProgress');
+  expect(progressEvents.length).toBeGreaterThan(0);
+  expect(progressEvents.every((event) => event.pathId === 'line-pipe-capture'
+    && event.speed >= 2 && event.deltaSeconds > 0
+    && Math.abs(event.signedDistanceAdvanced) > 0)).toBe(true);
+  expect(result.events.map((event) => event.eventIndex)).toEqual(
+    result.events.map((_, index) => index + 1),
+  );
+  expect(new Set(result.events.map((event) => event.eventId)).size).toBe(result.events.length);
   expect(result.events[0]).toMatchObject({ markerId: 'launch-lip-smooth-crest', verticalSpeed: 4 });
   expect(result.events[0].speed).toBeGreaterThanOrEqual(3);
   expect(result.events[1]).toMatchObject({ pathId: 'line-pipe-capture', direction: 1 });
-  expect(result.events[2]).toMatchObject({ pathId: 'line-pipe-capture', reason: 'endpoint' });
-  expect(result.events[3].surfaceId).toBeTruthy();
+  expect(result.events.find((event) => event.type === 'grindEnded'))
+    .toMatchObject({ pathId: 'line-pipe-capture', reason: 'endpoint' });
+  expect(result.events.at(-1).surfaceId).toBeTruthy();
   expect(Math.max(...result.positions.map((position) => position[0]))).toBeGreaterThan(150);
   expect(result.state.mode).toBe('grounded');
   expect(result.cameraUp).toEqual([0, 1, 0]);

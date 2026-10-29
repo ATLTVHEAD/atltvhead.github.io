@@ -7,6 +7,15 @@ export const AVATAR_ACCESSORIES = Object.freeze([
   Object.freeze({ id: 'cap', label: 'Cap' }),
 ]);
 
+export const TRICK_CATALOG = Object.freeze([
+  Object.freeze({ id: 'spin', label: 'Spin', basePoints: 100 }),
+  Object.freeze({ id: 'grab', label: 'Grab', basePoints: 150 }),
+]);
+
+export function getTrickAction(id) {
+  return TRICK_CATALOG.find((action) => action.id === id) ?? null;
+}
+
 export function normalizeAppearanceColor(color) {
   return typeof color === 'string' && /^#[\da-f]{6}$/i.test(color)
     ? color.toUpperCase()

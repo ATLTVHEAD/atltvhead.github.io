@@ -36,7 +36,7 @@ P8 adds mounted browser checks for:
 
 ## Verification snapshot
 
-- Latest `npm test`: 241 unit tests passed (28 files); worker suite had no test files and exited 0 by configuration; 49/49 browser tests passed using the default four workers. The existing stale-Jump browser assertion now latches simulation state across animation frames; this improves observation under load and does not represent city approval.
+- Latest `npm test`: 263 unit tests passed (33 files); worker suite had no test files and exited 0 by configuration; 53/53 browser tests passed using the default four workers. This includes Task 6 score/balance feedback checks and avatar-bounds HUD clearance at mobile sizes; none represents city approval. A fixture-only seam grind also passes through fixed-step input simulation. The existing stale-Jump browser assertion latches simulation state across animation frames to avoid missing a transient buffer under load. One earlier full run timed out in the long-lap test under load; isolated and subsequent full runs passed.
 - `npm run build`, `node --check tests/e2e/planar-city.spec.js`, and `git diff --check`: exit 0. Asset source check: 12 local assets verified.
 - Render metrics: 108 retained asset instances, 171 imported asset mesh instances; center view 6 draw calls / 3,442 triangles; seam view 4 / 448. Play camera far = 512; fog near/far = 160/208.
 - Cleanup observations: forced failed scene boot emitted 75 geometry-dispose events; Retry retained both scenes (8 preview buildings and 9 play tiles). Disposing a peer preview scene caused 0 premature shared-template geometry disposals.
