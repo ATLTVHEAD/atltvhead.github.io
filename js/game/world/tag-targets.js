@@ -2,6 +2,8 @@ import { cross3, dot3, normalize3 } from '../core/planet-math.js';
 import { sweepPlanarSkater } from './planar-city-queries.js';
 
 const EPSILON = 1e-9;
+const OCCLUSION_SEARCH_SUBDIVISIONS = 16;
+const VISIBILITY_REFINEMENT_ITERATIONS = 24;
 
 function finiteVector(value) {
   return Array.isArray(value) && value.length === 3 && value.every(Number.isFinite);
@@ -181,6 +183,64 @@ function nearestImageTriangle(world, triangle, position) {
   };
 }
 
+function pointFromBarycentric(points, barycentric) {
+  return [0, 1, 2].map((axis) => barycentric.reduce((sum, weight, index) => (
+    sum + points[index][axis] * weight
+  ), 0));
+}
+
+function mixBarycentric(first, second, amount) {
+  return first.map((weight, index) => weight + (second[index] - weight) * amount);
+}
+
+function nearestVisiblePointOnTriangle(world, position, points, normal, maxReach) {
+  const closest = closestPointOnTriangle(position, points);
+  const closestDistance = Math.hypot(...subtract(closest.point, position));
+  if (closestDistance > maxReach + EPSILON
+      || dot3(normal, subtract(position, closest.point)) <= EPSILON) return null;
+  if (isVisible(world, position, closest.point, normal)) {
+    return { point: closest.point, barycentric: closest.barycentric, distance: closestDistance };
+  }
+
+  // The exact nearest point can be shadowed while another part of this same
+  // triangle remains visible. Probe a small barycentric lattice only in that
+  // case, then refine each visible sample back toward the blocked minimum.
+  const samples = [];
+  for (let first = 0; first <= OCCLUSION_SEARCH_SUBDIVISIONS; first += 1) {
+    for (let second = 0; second <= OCCLUSION_SEARCH_SUBDIVISIONS - first; second += 1) {
+      const barycentric = [
+        first / OCCLUSION_SEARCH_SUBDIVISIONS,
+        second / OCCLUSION_SEARCH_SUBDIVISIONS,
+        1 - (first + second) / OCCLUSION_SEARCH_SUBDIVISIONS,
+      ];
+      const point = pointFromBarycentric(points, barycentric);
+      const distance = Math.hypot(...subtract(point, position));
+      if (distance <= maxReach + EPSILON) samples.push({ point, barycentric, distance });
+    }
+  }
+  samples.sort((first, second) => first.distance - second.distance);
+
+  let best = null;
+  for (const sample of samples) {
+    if (!isVisible(world, position, sample.point, normal)) continue;
+
+    let hidden = closest.barycentric;
+    let visible = sample.barycentric;
+    for (let iteration = 0; iteration < VISIBILITY_REFINEMENT_ITERATIONS; iteration += 1) {
+      const midpoint = mixBarycentric(hidden, visible, 0.5);
+      const midpointPoint = pointFromBarycentric(points, midpoint);
+      if (isVisible(world, position, midpointPoint, normal)) visible = midpoint;
+      else hidden = midpoint;
+    }
+    const point = pointFromBarycentric(points, visible);
+    const distance = Math.hypot(...subtract(point, position));
+    if (!best || distance < best.distance - EPSILON) {
+      best = { point, barycentric: visible, distance };
+    }
+  }
+  return best;
+}
+
 export function findTagTarget(world, skater, { maxReach = 2 } = {}) {
   if (!world || !finiteVector(skater?.position)
       || !Number.isFinite(world.width) || world.width <= 0
@@ -193,21 +253,24 @@ export function findTagTarget(world, skater, { maxReach = 2 } = {}) {
       const normal = triangleNormal(target, triangle);
       if (!normal) continue;
       const image = nearestImageTriangle(world, triangle, skater.position);
-      const closest = closestPointOnTriangle(skater.position, image.points);
-      const distance = Math.hypot(...subtract(closest.point, skater.position));
-      if (distance > reach + EPSILON) continue;
-      if (dot3(normal, subtract(skater.position, closest.point)) <= EPSILON) continue;
-      if (!isVisible(world, skater.position, closest.point, normal)) continue;
+      const closestVisible = nearestVisiblePointOnTriangle(
+        world,
+        skater.position,
+        image.points,
+        normal,
+        reach,
+      );
+      if (!closestVisible) continue;
 
       const candidate = {
         anchor: {
           targetId: target.id,
           triangleId: triangle.id,
-          barycentric: closest.barycentric,
+          barycentric: closestVisible.barycentric,
         },
-        point: closest.point,
+        point: closestVisible.point,
         normal,
-        distance,
+        distance: closestVisible.distance,
       };
       if (!best || candidate.distance < best.distance - EPSILON
           || (Math.abs(candidate.distance - best.distance) <= EPSILON

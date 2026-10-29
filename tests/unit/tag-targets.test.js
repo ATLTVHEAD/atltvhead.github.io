@@ -58,10 +58,10 @@ describe('planar wall tag targets', () => {
     expect(findTagTarget(blockedWorld, { position: [0, 2, 2] }, { maxReach: 8 })).toBeNull();
     const triangleWall = {
       id: 'triangle-wall',
-      triangles: [{
-        id: 'triangle-wall:0',
-        points: [[2, 0, -1], [2, 4, -1], [2, 2, 5]],
-      }],
+      triangles: [
+        { id: 'triangle-wall:0', points: [[2, 0, 0], [2, 0, 4], [2, 4, 4]] },
+        { id: 'triangle-wall:1', points: [[2, 0, 0], [2, 4, 4], [2, 4, 0]] },
+      ],
     };
     expect(findTagTarget({
       ...world([target]),
@@ -97,6 +97,19 @@ describe('planar wall tag targets', () => {
       }, { maxReach: 2 });
       expect(result !== null, `panel at ${distance}`).toBe(expected);
     }
+  });
+
+  it('tagTargets_findsVisibleSurfaceWhenNearestPointIsPartiallyOccluded', () => {
+    const target = panel('partly-visible-panel', 1);
+    const worldWithPartialBlocker = world([target], [
+      box('small-intervening-obstacle', [0.5, 2, 2], [0.1, 0.25, 0.25]),
+    ]);
+    const result = findTagTarget(worldWithPartialBlocker, { position: [0, 2, 2] }, { maxReach: 2 });
+
+    expect(result).not.toBeNull();
+    const distance = Math.hypot(...result.point.map((value, axis) => value - [0, 2, 2][axis]));
+    expect(distance).toBeCloseTo(1.18, 2);
+    expect(result.point).not.toEqual([1, 2, 2]);
   });
 
   it('tagTargets_seamImageUsesRealReach', () => {
