@@ -10,6 +10,17 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-28-skate-city-playability-and-comic-art-design.md` (user approved 2026-10-28).
 
+**Post-join city revision / handoff (2026-10-29):** Read
+`docs/superpowers/specs/2026-10-29-planar-wraparound-city-design.md` before resuming
+Task 4. Its draft replaces spherical play with a static planar wrap-around city while
+preserving the menu globe. The user rejected uniform streets/alleys: streets must
+change width along their length, and tighter alleys must turn between staggered,
+different buildings. The previous 4×4 grid and straight, constant-width alley proposal
+is superseded. Tasks 4–12 below have not yet been re-planned for this architecture;
+do not implement their old spherical-layout assumptions unchanged. User requested
+documentation only in this session, then a stop for **GPT Luna 6** to handle implementation.
+Written-spec review and the re-scoped implementation-plan gates remain open.
+
 **Approved playtest reprioritization (2026-10-28):** Steam Controller-specific acceptance is deferred; other gamepads have user-reported movement/Jump/camera success. Complete the bounded wall-fall/escape correction and visible Kenney building integration, then stop for a user playtest before new mechanics. Evidence, limits and the review checklist are in [`../../reviews/2026-10-28-collision-and-visible-assets-checkpoint.md`](../../reviews/2026-10-28-collision-and-visible-assets-checkpoint.md). This checkpoint is not completion of the full authored-route/tag-target Task 4 or waiver of the Task 5 mechanics review.
 
 ## Global Constraints

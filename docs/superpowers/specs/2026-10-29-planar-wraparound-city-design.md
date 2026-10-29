@@ -4,6 +4,11 @@ Date: 2026-10-29
 
 Status: **draft — awaiting user review (hard gate)**.
 
+Handoff (2026-10-29): user requested this documentation revision, then a stop so
+**GPT Luna 6** can handle implementation. No planar implementation or re-scoped
+implementation plan has been produced. The previous uniform-grid proposal has been
+replaced by the irregular, building-shaped route requirements in §2.
+
 Amends `docs/superpowers/specs/2026-10-28-skate-city-playability-and-comic-art-design.md`.
 That spec stays approved for Tasks 1–3, the menu/globe, and everything outside post-join
 play; this spec supersedes its §1 ("preserve the tiny spherical world") and §8
@@ -17,45 +22,79 @@ no percievable world edges, it should feel like the small planets ability for th
 move across the map and end up back where they started just by navigating in a single
 direction through streets and allyways."
 
+User refinement (2026-10-29): streets and alleys must not be even/uniform; their
+dimensions should change as they progress. Alleys should be tighter and have turns
+formed by lining up different buildings. The intended feel is an authored, lifelike
+city, not equally spaced rectangular blocks with straight gaps painted between them.
+
 Confirmed choices:
 
 - **Globe preview stays.** The pre-join menu keeps the spherical city (radius 32, eight
   Kenney buildings, OrbitControls). Only post-join play is planar.
 - Portfolio and 3D Viewer pages are unchanged.
 - All human-scale decisions carry over unchanged: `BUILDING_SCALE = 17` (single source in
-  `asset-placements.js`), avatar 2.995 units, street width 6.4, ramp lift 0.72, rail deck
+  `asset-placements.js`), avatar 2.995 units, nominal street width 6.4, ramp lift 0.72, rail deck
   height 0.82, follow-camera distances, stop-not-bail collision response.
+  **6.4 is a reference width, not a constant-width requirement.**
 
 ## 2. World model
 
 The play world is a **torus**: positions wrap on both horizontal axes.
 
 - `W = D = 256` units (≈ 152 m at 0.594 m/unit). One full lap at maxSpeed 12 takes
-  ≈ 21.3 s — a "small planet" lap feel at street speed.
-- **Streets:** a 4×4 primary grid, width 6.4, centerlines at 0 / 64 / 128 / 192 on both
-  axes. The axis-0 street (centerline 0) straddles the seam; it is authored as two wrapped
-  halves so all authored geometry stays finite inside [0, W) × [0, D).
-- **Blocks:** 16 blocks, interior 57.6 × 57.6 each. Every block has one **alley**, width
-  3.6, running the block's full length along one interior edge. Edge chosen by
-  `(blockX + blockZ) % 4` → 0 W, 1 N, 2 E, 3 S; alley centerline 3.9 units in from that
-  edge. Alleys are the "allyways" of the request: they give every block a second,
-  narrower route parallel to one primary street.
-- **Ramp:** on the x=128 primary street, the z ∈ [128, 192] segment (64 long). Centerline
-  profile `Y = 0.025 + 0.72·sin(πt)`, t ∈ [0, 1] — one smooth up-down crest, max lift 0.72.
+  ≈ 21.3 s along a clear straight wrap route; winding routes take longer.
+- **Streets:** a hand-authored connected network, not a 4×4 equal-pitch grid. Use
+  unequal spacing, offset junctions, short bends, and wider openings near the plaza.
+  Width changes along a route: narrow stretches open out, then pinch back down.
+  Initial design targets are 5–10 units for ordinary streets, with 6.4 as the nominal
+  reference; these ranges are proposed tuning targets, not user-specified measurements.
+  Changes must be visibly meaningful, not tiny perturbations of a uniform grid.
+- **Blocks:** irregular building clusters and courtyards with unequal footprints.
+  Remove the fixed 16-block count, 57.6-square interiors, modulo-selected alley edges,
+  and one-alley-per-block rule. Keep a readable connected street network with optional
+  narrower shortcuts, not a maze of compulsory dead ends.
+- **Alleys shaped by buildings:** offset and line up different full-scale Kenney
+  building footprints to create tighter passages, recesses, doglegs, and corners.
+  The facing walls define the route's actual boundaries; do not draw a winding strip
+  through an otherwise open block and call it an alley. Include at least one connected
+  alley route with two or more turns between staggered buildings and visibly different
+  widths along its length. Initial clear-width targets are 1.8–3.0 units (≈1.1–1.8 m),
+  measured wall-to-wall after collision geometry and props are accounted for. Preserve
+  body-radius clearance through corners and playable entrances/exits onto streets.
+  Tighter walls may shorten the follow-camera boom; they must not trap the player or
+  force camera clipping. Keep the rail/landing line in a locally wider pocket.
+- **Route records:** author sampled centerlines with local left/right widths (or
+  equivalent explicit boundary polygons), junction connections, and building transforms.
+  Width interpolation and turn geometry must not leave gaps, self-intersections, or
+  collision/render disagreements. Derive alley clearance from the real transformed
+  building bounds rather than a fixed setback from an abstract alley edge.
+- **Wrap continuity:** route edges crossing either tile seam must match position,
+  heading, height, and left/right widths on the opposite edge. Buildings and props
+  must also respect their wrapped neighbors. Preserve at least one unobstructed
+  straight wrap corridor in each horizontal direction so sustained travel can return
+  to its start without encountering a boundary; the rest of the network can bend.
+- **Ramp:** on a suitable straight, clear street segment (not tied to x=128 or a
+  grid block). Centerline profile `Y = 0.025 + 0.72·sin(πt)`, t ∈ [0, 1], over a
+  64-unit segment — one smooth up-down crest, max lift 0.72. Local street widths
+  still vary, with enough room at the ramp and its connected landing line.
 - **Rails:** two straight box rails, deck 0.9 wide, length 24, top at Y = 0.82:
   - `rail-0` in a building block's alley;
   - `rail-1` in the water-tower plaza.
-- **Buildings:** the eight Kenney variants (building-a … building-h), one each, placed on
-  the side of the alley **opposite** the block's alley edge. Largest across-alley span is
-  building-c at 17× (35.8 units); every placement keeps ≥ 2.1 clearance to the alley
-  centerline plus half alley width, and ≥ 1.2 to any street centerline minus half street
-  width. The unit test asserts these clearances.
-- **Water-tower plaza:** block (1,1). Landmark `water-tower` plus `shipping-container-a`
-  ×2 and `detail-tank` ×1, arranged as an open plaza (no building).
-- **Open blocks:** the remaining 7 blocks without buildings take sparse props
-  (`chimney-basic`, `detail-tank`) and are the tag/graffiti surfaces for Task 7.
-- **Spawns:** one spawn per block (street-side) plus one in the plaza; default spawn is the
-  plaza. Spawn records carry position, heading, and block id.
+- **Buildings:** use all eight Kenney variants (building-a … building-h) at uniform
+  scale 17; repeated instances are allowed when needed to form believable enclosing
+  frontages. The play city is no longer limited to eight instances or one building per
+  block; the menu preview still has eight. Vary alignment, setbacks, and grouping
+  without stretching assets. Place buildings on both sides of alley turns; test
+  transformed footprints for overlap, including across seams. Replace the old 2.1-unit
+  alley setback rule with the clear passage widths above, allowing walls to actually
+  enclose the alley. Keep the entire authored street corridor free of building colliders.
+- **Water-tower plaza:** a named landmark district, no fixed block coordinate.
+  `water-tower` plus `shipping-container-a` ×2 and `detail-tank` ×1 frame an open plaza
+  connected to streets and an alley exit.
+- **Open spaces:** use irregular yards, recesses, and small prop/tag pockets where the
+  building composition leaves room; no fixed seven-open-block allocation.
+- **Spawns:** authored safe street-side/courtyard locations plus the plaza default.
+  Spawn records carry position, heading, and district/route id, with verified clearance.
 - The layout is **static and deterministic** — no runtime randomization. "Seed invariance"
   is tested as: layout output is byte-identical regardless of the seed passed.
 
@@ -84,9 +123,9 @@ New modules:
 | Module | Responsibility |
 |---|---|
 | `js/game/core/wrap-math.js` | `wrapScalar(v, span)`, `wrapPosition(p, { width, depth })`, `wrapDelta(a, b, span)` (smallest signed difference), `nearestImage(target, reference, span)`. Pure, unit-tested. |
-| `js/game/world/planar-city-layout.js` | `createPlanarCityLayout()` → the static table from §2: streets, alleys, blocks, building placements (via `placePlanarCityAssets`), plaza, ramp, rails, spawns. |
-| `js/game/world/planar-city-surfaces.js` | `compilePlanarWorld(layout)` → surfaces: flat street/alley quads (Y = 0.025), ramp strip (profiled), rail boxes, building AABBs, ground plane. One source of truth for both queries and rendering. |
-| `js/game/world/planar-city-queries.js` | `queryPlanarSupport(world, point)` — vertical strip projection onto street/alley/ramp/rail/ground, returns height + normal (normal is `[0,1,0]` everywhere); `sweepPlanarSkater(world, from, to, radius)` — seam-exact swept test via shared slab function. |
+| `js/game/world/planar-city-layout.js` | `createPlanarCityLayout()` → static authored variable-width routes, irregular building clusters (via `placePlanarCityAssets`), junctions, plaza, ramp, rails, spawns from §2. |
+| `js/game/world/planar-city-surfaces.js` | `compilePlanarWorld(layout)` → triangulated variable-width street/alley polygons (Y = 0.025), profiled ramp strip, rail boxes, transformed building colliders, ground plane. One source of truth for both queries and rendering. |
+| `js/game/world/planar-city-queries.js` | `queryPlanarSupport(world, point)` — vertical projection onto compiled street/alley/ramp/rail/ground triangles, returns height and the actual surface normal (flat ground up is `[0,1,0]`, ramp normals follow its slope); `sweepPlanarSkater(world, from, to, radius)` — seam-exact swept test via shared slab function, with narrow-corner coverage. |
 | `js/game/core/planar-skater.js` | Mirrors `city-skater.js` structure: same modes (grounded / airborne / grinding / bailed), jump buffer, coyote time, bail timer; calls the planar queries; returns state with wrapped position and a finite `supportNormal` in every mode (in air it is `[0, 1, 0]`). |
 
 ## 4. Rendering
@@ -173,19 +212,20 @@ from the old spherical play world (Task 8 records key off it).
 | File | Key assertions |
 |---|---|
 | `tests/unit/wrap-math.test.js` | `wrapScalar`/`wrapPosition` for negative, > span, and exact-span inputs; `wrapDelta` smallest-signed-difference and half-span tie; `nearestImage` picks the closest copy. |
-| `tests/unit/planar-city-layout.test.js` | Seed invariance (output identical for any seed); street/alley clearances per §2; every block reachable from every other via the street+alley graph (connectivity); building clearances ≥ 2.1 (alley) and ≥ 1.2 (street). |
-| `tests/unit/planar-city-surfaces.test.js` | Compiled surfaces all finite; ramp centerline matches `0.025 + 0.72·sin(πt)` at sample t; ground plane covers [0, W)×[0, D). |
-| `tests/unit/planar-city-queries.test.js` | **Seam crossing:** support height and swept-collision results are identical for a skater crossing x = W/0 and z = D/0 (same query in unwrapped and wrapped coordinates). |
-| `tests/unit/planar-skater.test.js` | **Walk one direction for one lap of fixed steps returns to the spawn position** (wrapped position within 0.05 of start); jump/grind/bail behaviors mirror the sphere tests. |
+| `tests/unit/planar-city-layout.test.js` | Seed invariance; non-uniform street spacing and measurable within-route width changes; connected districts and shortcuts; an alley with ≥2 building-shaped turns, enclosing walls on both sides, and varying 1.8–3.0-unit clear widths; no building overlap or blocked swept-body corridor, including at wrapped neighbors; seam endpoint position/heading/height/width continuity. |
+| `tests/unit/planar-city-surfaces.test.js` | Finite, nondegenerate variable-width triangulation; continuous coverage at width transitions, doglegs, and junctions; compiled boundaries match layout and building clearances; ramp profile and slope normals; ground plane covers [0, W)×[0, D). |
+| `tests/unit/planar-city-queries.test.js` | **Seam crossing:** wrapped/unwrapped support and collision equivalence on both axes; narrow-corner wall stops, no tunneling, valid support throughout alley turns and width transitions. |
+| `tests/unit/planar-skater.test.js` | **Travel one direction for one lap on each straight wrap corridor returns to its starting position** (within 0.05); separately steer through the authored alley's turns without overlap or bailout; jump/grind/bail behaviors mirror the sphere tests. |
 
 **Retargeted**
 
 - `tests/unit/follow-camera.test.js` → planar: camera y never below 0.45; boom/shoulder
-  behavior on flat ground.
+  behavior on flat ground; collision-safe boom shortening and restoration through
+  tight alley turns and widening exits.
 - `tests/unit/avatar-pose.test.js` → adds: planar airborne state stays upright (up
   `[0, 1, 0]`), grounded uses support normal.
 - `tests/e2e/local-skating.spec.js` → play-mode assertions re-scoped to planar
-  coordinates (spawn from `playWorld`, camera above ground, movement on the flat grid).
+  coordinates (spawn from `playWorld`, camera above ground, movement on planar routes).
 - `tests/e2e/city-world.spec.js` → descriptor assertion (line 143) version 2 → 3; the
   menu-layout scene test is unchanged.
 
@@ -195,17 +235,24 @@ screenshot it captures now shows the planar city, which is the intended new beha
 **New e2e file** `tests/e2e/planar-city.spec.js`:
 
 1. Join lands the player at the planar plaza spawn (finite, inside [0, 256)²).
-2. Holding forward for one lap (~21 s) returns the player within 0.5 units of the start.
+2. Navigate from the plaza onto an authored straight wrap corridor using normal input;
+   then sustained forward travel for one lap returns within 0.5 units of the lap start.
+   Measure a full 256-unit lap (≈21.3 s at cruising speed; acceleration adds time).
 3. Crossing the seam: screenshot captured with the player near x ≈ 0; camera position and
    skater state all finite (no NaN), no visible pop (human check on the capture).
 4. Leave returns to the globe preview: menu city still renders its 8 buildings.
+5. Traverse a building-enclosed alley with at least two turns and changing widths using
+   normal movement input. Capture its entrance, dogleg, and wider exit; inspect for
+   lifelike building-defined boundaries, playable clearance, and a non-clipping camera.
 
 ## 9. Impact on plan Tasks 4–12
 
 - **Task 4** (steps 1–5 re-scoped to the planar authored content): tag panels on planar
   walls; the launch → rail → landing line on planar streets (rail-0 alley or plaza line);
-  the alley loop branch through one block's alley. Descriptor version in the step is
+  the alley loop branch through a building-defined dogleg route. Descriptor version in the step is
   corrected 2 → 3. `skate-paths.js` is reused as-is (generic path math).
+  Replace uniform-grid fixtures with variable-width routes and building-shaped alley
+  turns; author launch/rail/landing clearance against those actual boundaries.
 - **Tasks 5, 6, 8:** unchanged in substance; their world records and scene fixtures move
   to the planar layout.
 - **Task 7:** tags become planar wall-panel decals, replicated 9× via the
@@ -215,7 +262,8 @@ screenshot it captures now shows the planar city, which is the intended new beha
   planet-underside/pole vignette items become menu-only.
 - **Task 11:** measures the 9-copy draw-call and node budget (≤ 150 draw-call target;
   unmerged fallback allowed with the measurement recorded).
-- **Task 12:** adds the single-direction lap and seam-invisibility acceptance items.
+- **Task 12:** adds the single-direction lap, seam-invisibility, visible street-width
+  variation, and tight building-defined alley-turn acceptance items.
 
 The Sol mechanics review gate (Task 5, step 0) and the Task 10 visual vignette approval
 remain open human gates, unaffected by this spec.
@@ -228,7 +276,9 @@ Evidence required before claiming done:
   e2e) green.
 - `planar-city.spec.js` green, including the ~21 s lap return and seam screenshot.
 - Screenshots: planar play (street, plaza, rail), seam-crossing frame, and the unchanged
-  menu globe — inspected by the user.
+  menu globe — inspected by the user. Also inspect a top-down layout and street-level
+  alley-turn sequence: unequal spacing, clear width changes, and enclosing staggered
+  buildings must read as a lifelike city rather than a regular grid with cosmetic bends.
 - Ledger entry with command + output for each step (SDD process).
 
 Human gates, in order:
@@ -239,16 +289,21 @@ Human gates, in order:
 
 ## 11. Risks
 
-- **9× asset retention memory.** 12 assets retained per tile × 9 tiles. Geometries are
-  shared across tiles; only the retained asset scenes multiply (node count), textures stay
-  single (resource refcounts). Measured in Task 11; if node count is a problem, the
-  fallback is authoring static geometry only for the center tile and keeping 3×3 for
-  dynamic attachments — but the default is full 9× for seam simplicity.
+- **9× asset retention memory.** The actual authored asset instances per tile multiply
+  across 9 tiles; repeats needed to enclose alleys increase that count. Geometries and
+  textures are shared through resource refcounts; retained scene nodes multiply.
+  Measure in Task 11 and optimize shared/merged statics if needed without removing
+  neighboring scenery or changing alley walls, contacts, or seam continuity.
 - **Merged geometry loses per-building object identity** in the play scene. Accepted:
   play-scene tests read the layout records (`planarLayout`), not scene-object bounds; the
   menu's `visible-city.spec.js` bounds assertions are untouched.
 - **Seam precision.** Guaranteed by the 1.2-unit per-step bound vs 128-unit half-width;
   covered by the dedicated seam unit tests and the e2e seam screenshot.
+- **Irregular passages.** A road mesh alone does not establish a believable alley:
+  layout, transformed building colliders, local passage widths, and camera clearance
+  must agree. Validate full swept corridors at corners, not just sampled center points.
+  More building instances may increase the 9-tile rendering cost; measure actual
+  authored instance counts rather than assuming eight buildings or twelve assets/tile.
 - **r137 `mergeBufferGeometries` requires matching attribute sets.** Merging is
   per-material and all inputs are position+normal BufferGeometries built by
   `compilePlanarWorld`, so attributes match; index handling is the util's job.
@@ -257,3 +312,16 @@ Human gates, in order:
 - **Spec drift from the 2026-10-28 spec.** This document explicitly enumerates what it
   supersedes (§1, §8 of the old spec) and what it preserves (§6); the plan document is
   amended in place rather than forked.
+
+## 12. Documentation-only handoff to GPT Luna 6
+
+- [x] Record the user's lifelike, changing-width street/alley direction.
+- [x] Replace uniform-grid, straight-alley, fixed building-count, and setback rules.
+- [x] Align route/surface interfaces, tests, acceptance evidence, and plan references.
+- [x] Self-review the revision for conflicting uniform-layout requirements.
+- [ ] User review of the revised written spec (existing hard gate remains open).
+- [ ] GPT Luna 6: write/review the re-scoped implementation plan, then implement under
+  the approved execution method and existing mechanics/visual gates.
+
+Stop after this documentation update. Do not launch another model, write product code,
+or begin implementation in this session. The user will hand implementation to GPT Luna 6.

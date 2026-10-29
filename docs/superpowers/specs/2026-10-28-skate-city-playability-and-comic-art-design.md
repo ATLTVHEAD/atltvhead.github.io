@@ -4,6 +4,13 @@ Date: 2026-10-28
 
 Status: **user-approved design (2026-10-28); implementation-plan review and execution-method selection pending**.
 
+Post-join world amendment (2026-10-29, draft): see
+`docs/superpowers/specs/2026-10-29-planar-wraparound-city-design.md`. The new direction
+is a static planar wrap-around play city with changing-width streets and tighter,
+turning alleys formed by staggered buildings—not a uniform grid. The menu globe stays.
+The amendment records the review gates and documentation-only handoff to GPT Luna 6;
+the spherical-play requirements here must not be carried into the re-scoped plan unchanged.
+
 Audit: `docs/reviews/2026-10-28-skate-city-playability-audit.md`.
 Approved playtest follow-up: `docs/reviews/2026-10-28-collision-and-visible-assets-checkpoint.md` — defer Steam Controller-specific acceptance, prioritize wall-fall/escape correctness and visible Kenney building placement, then obtain user playtest feedback before new mechanics.
 Existing roadmap: `docs/superpowers/plans/2026-10-27-tvhead-skate-city-tdd-plan.md`.
